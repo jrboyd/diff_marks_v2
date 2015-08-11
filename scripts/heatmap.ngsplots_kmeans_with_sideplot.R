@@ -10,10 +10,7 @@ library('reshape')
 library('ggplot2')
 library('gplots')
 
-plot0 = function(width = 1, height = 1){
-  fudge = 0.037037037037
-  plot(c(0+fudge*width, width-fudge * width), c(0+fudge*height, height-fudge * height), type = 'n', xlab = '', ylab = '', axes = F, )
-}
+
 
 startRasterMode = function(width = 1, height = 1){
   png('tmp.png', units = 'in', width = width, height = height, res = 600)
@@ -530,8 +527,8 @@ heatmap.2.2 = function (x,
   }
   
   
-  print(lmat)
-  print(lmat_custom)
+#   print(lmat)
+#   print(lmat_custom)
   if(!is.null(lmat_custom)){
     if(class(lmat_custom) != 'matrix'){
       stop('class of lmat_custom must be matrix')
@@ -743,7 +740,7 @@ heatmap.2.2 = function (x,
     par(xpd = NA)
     cluster_starts = 1:nclust
     cluster_ends = 1:nclust
-    print(par('usr'))
+    #print(par('usr'))
     for(i in 1:length(RowSideLabels)){
       keep = (cluster_ids == cluster_levels[i])
       cluster_starts[i] = min(as.numeric(names(keep[keep])))
@@ -836,10 +833,6 @@ heatmap.2.2 = function (x,
       #       plot0()
       #       box()
       subset = rownames(clust$data)[clust$cluster == i]
-      print(clust$cluster == i)
-      print(rownames(clust$data))
-      print(paste(i, ':  ',subset))
-      #print(subset)
       dat = extraData[subset,, drop = F] + 64
       colnames(dat) = NULL
       M = colMeans(dat)
@@ -850,7 +843,7 @@ heatmap.2.2 = function (x,
       low = M - E
       mid = M
       high = M + E
-      print(rbind(low, mid, high))
+#       print(rbind(low, mid, high))
       if(any(is.na(low))) low = mid
       if(any(is.na(high))) high = mid
       

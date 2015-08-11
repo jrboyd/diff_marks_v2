@@ -127,7 +127,7 @@ plot_bg = function(data, lists_excluded, colors, a, b, note = "", scale = NA, ..
     plot_list(data, non_ensgs, colors, a, b, note = note, scale = scale, ...)
 }
 
-plot_merge = function(data, list_a, list_b, colors, a, b, note, ...) {
+plot_merge = function(data, list_a, list_b, colors, a = 1, b = 2, note, ...) {
     toSort = rep(0, length(colors))
     names(toSort) = rownames(data)
     toSort[list_a] = colors[list_a]

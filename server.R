@@ -1,16 +1,20 @@
 source('setup.R')
-
+source('reactions.R')
 
 shinyServer(function(input, output, session) {
   
-
+  
   output$detail_lines = renderUI({
     default = union(lines[react_index_x()], lines[react_index_y()])
+    keep = c(input$x_type, input$y_type) == xy_type_choices[1]
+    default = default[keep]
     checkboxGroupInput(inputId = 'detail_lines', label = 'Detail Cell Lines', choices = cell_lines, selected = default)
   })
   
   output$detail_marks = renderUI({
     default = union(mods[react_index_x()], mods[react_index_y()])
+    keep = c(input$x_type, input$y_type) == xy_type_choices[1]
+    default = default[keep]
     checkboxGroupInput(inputId = 'detail_marks', label = 'Detail Histone Marks', choices = histone_mods, selected = default)
   })
   
@@ -18,7 +22,7 @@ shinyServer(function(input, output, session) {
     i_x = react_index_x()
     i_y = react_index_y()
     
-    disp_data = react_displayed()
+    disp_data = my_fe
     
     list_up = react_list_up()
     list_up = intersect(rownames(disp_data), list_up)
@@ -44,50 +48,39 @@ shinyServer(function(input, output, session) {
     if(debug) print('to_plot')
     if(debug) print(to_plot)
     if(input$detail_type == detail_plot_types[2]){#ngs profiles
-#         if(is.na(ngs_profiles)[1]){
-#           ngs_profiles <<- load_ngsprofiles(my_fe)
-#         }
-        plotNGS_wBG(sel, bg_ENSGcut_list = NA, list_name = detail_desc, sel_name = 'Selected', linesToPlot = input$detail_lines, marksToPlot = input$detail_marks, smoothing = input$smoothing_window)
-        #plot(colMeans(ngs_x[sel,]))
+      plotNGS_wBG(sel, bg_ENSGcut_list = NA, list_name = detail_desc, sel_name = 'Selected', linesToPlot = input$detail_lines, marksToPlot = input$detail_marks, smoothing = input$smoothing_window)
     }else if(input$detail_type == detail_plot_types[3]){#ngs heatmaps
-        if(length(sel) < 3){
-          plot0()
-          text(.5,.5, 'selection too small for ngsheatmap!')
-          return()
-        }
-        samples = colnames(my_fe)
-        sample_a = samples[i_x]
-        sample_b = samples[i_y]
-        
-        #res = plotNGS_heatmap(sel, c(sample_a, sample_b))
-        #res = plotNGS_heatmap(sel, samples)
-        sel_prof = lapply(ngs_profiles, function(x){
-          return(x[sel,])
-        })
-        #only do side plot if it won't be confusing
-        doSidePlot = min(c(length(input$detail_marks), length(input$detail_lines))) == 1
-        nclust = min(8, length(sel)-1)
-        nr = 4 + nclust
-        nc = 7
-        if(doSidePlot) nc = nc + 1
-        lmat_custom = matrix(0, ncol = nc, nrow = nr)
-        lmat_custom[nr-1,nc-2] = 1
-        lmat_custom[nr-1,nc-1] = 2
-        lmat_custom[nr,-2:-1+nc] = 3
-        lmat_custom[1,nc] = 4
-        res = heatmap.ngsplots(sel_prof, nclust = nclust, cex.col = 3.3, doSidePlot = doSidePlot, labelWithCounts = T, extraData = my_rna, lmat_custom = lmat_custom,
-                               detail_desc, profiles_to_plot = to_plot, 
-                               forPDF = F, globalScale = .6, 
-                               labels_below = rep(input$detail_lines, length(input$detail_marks)), 
-                               labels_above = input$detail_marks)
-        
-          plot0();text(.5,.5, 'average profile')
-          plot0();text(.5,.5, 'log gene expression')
-          plot0();legend('center', legend = c('MCF10A', 'MCF7', 'MDA231'), fill = RColorBrewer::brewer.pal(3, 'Set1'), horiz = T, bty = 'n')
-          plot0();text(.5,.5, 'cluster size')
-        v$hmap_res = res
-        clear_hmap_res = F
-        #plot(colMeans(ngs_x[sel,]))
+      if(length(sel) < 3){
+        plot0()
+        text(.5,.5, 'selection too small for ngsheatmap!')
+        return()
+      }
+      sel_prof = lapply(ngs_profiles, function(x){
+        return(x[sel,])
+      })
+      #only do side plot if it won't be confusing
+      doSidePlot = min(c(length(input$detail_marks), length(input$detail_lines))) == 1
+      nclust = min(8, length(sel)-1)
+      nr = 4 + nclust
+      nc = 6
+      if(doSidePlot) nc = nc + 2
+      lmat_custom = matrix(0, ncol = nc, nrow = nr)
+      lmat_custom[nr-1,nc-2] = 1
+      lmat_custom[nr-1,nc-1] = 2
+      lmat_custom[nr,-2:-1+nc] = 3
+      lmat_custom[1,nc] = 4
+      res = heatmap.ngsplots(sel_prof, nclust = nclust, cex.col = 3.3, doSidePlot = doSidePlot, labelWithCounts = T, extraData = my_rna, lmat_custom = lmat_custom,
+                             detail_desc, profiles_to_plot = to_plot, 
+                             forPDF = F, globalScale = .6, 
+                             labels_below = rep(input$detail_lines, length(input$detail_marks)), 
+                             labels_above = input$detail_marks)
+      
+      plot0();text(.5,.5, 'average profile')
+      plot0();text(.5,.5, 'log gene expression')
+      plot0();legend('center', legend = c('MCF10A', 'MCF7', 'MDA231'), fill = RColorBrewer::brewer.pal(3, 'Set1'), horiz = T, bty = 'n')
+      plot0();text(.5,.5, 'cluster size')
+      v$hmap_res = res
+      clear_hmap_res = F
     }else if(input$detail_type == detail_plot_types[4]){#heatmap of all cell lines and mods
       if(length(sel) == 1){
         par(mai = c(2,1,1,1))
@@ -97,7 +90,9 @@ shinyServer(function(input, output, session) {
         axis(side = 1, at = 1:ncol(my_fe), labels = colnames(my_fe), las = 2)
         title(ensg_dict[sel,]$gene_name)
       }else{
-        res = heatmap.3(disp_data[sel,to_plot], nsplits = 2, classCount = min(6, length(sel)), main = paste(length(sel), 'selected genes'), key.xlab = 'log2 FE', key.title = '')
+        print(colnames(disp_data))
+        print(to_plot)
+        res = heatmap.3(disp_data[sel,to_plot], nsplits = length(input$detail_marks), classCount = min(6, length(sel)), main = paste(length(sel), 'selected genes'), key.xlab = 'log2 FE', key.title = '')
         v$hmap_res = res
         clear_hmap_res = F
       }
@@ -107,15 +102,6 @@ shinyServer(function(input, output, session) {
       text(.5,.5, 'no detail plot type selected')
     }
     if(clear_hmap_res) v$hmap_res = NULL
-  })
-  
-  
-  ngs_x = reactive({
-    return(ngs_profiles[[colnames(my_fe)[react_index_x()]]])
-  })
-  
-  ngs_y = reactive({
-    return(ngs_profiles[[colnames(my_fe)[react_index_y()]]])
   })
   
   output$volcano =  renderPlot({
@@ -144,10 +130,10 @@ shinyServer(function(input, output, session) {
       colors = rep(rgb(0,0,0,input$bg_opacity), nrow(disp_data))
       names(colors) = rownames(disp_data)
       if(length(list_up) > 0){
-      colors = scale_colors(data = disp_data, scale = scale, list_in = list_up, bg_color = rgb(0,0,0,input$bg_opacity), list_color = rgb(1,0,0,input$fg_opacity), colors = colors)
+        colors = scale_colors(data = disp_data, scale = scale, list_in = list_up, bg_color = rgb(0,0,0,input$bg_opacity), list_color = rgb(1,0,0,input$fg_opacity), colors = colors)
       }
       if(length(list_dn) > 0){
-      colors = scale_colors(data = disp_data, scale = scale, list_in = list_dn, bg_color = rgb(0,0,0,input$bg_opacity), list_color = rgb(0,1,0,input$fg_opacity), colors = colors)
+        colors = scale_colors(data = disp_data, scale = scale, list_in = list_dn, bg_color = rgb(0,0,0,input$bg_opacity), list_color = rgb(0,1,0,input$fg_opacity), colors = colors)
       }
       
       #print(sel)
@@ -159,7 +145,7 @@ shinyServer(function(input, output, session) {
       note = paste0(format(name_a, width = max_str), ' - ', length(list_up), '\n', format(name_b, width = max_str), ' - ', length(list_dn))
       MIN = min(my_fe[,c(i_x, i_y)])
       MAX = max(my_fe[,c(i_x, i_y)])
-      plot_merge(data = disp_data, list_a = list_up, list_b = list_dn, colors = colors, a = i_x, b = i_y, note = note,
+      plot_merge(data = disp_data, list_a = list_up, list_b = list_dn, colors = colors, note = note,
                  xlab = paste(name_a, 'log2 FE'), ylab = paste(name_b, 'log2 FE'), xlim = c(MIN, MAX), ylim = c(MIN, MAX), cex = .8)
       detect_thresh = input$detect_threshold
       if(detect_thresh > 0){
@@ -183,7 +169,7 @@ shinyServer(function(input, output, session) {
   react_displayed = reactive({
     if(debug) print('react_displayed')
     keep = apply(my_fe,1,max) > input$detect_threshold
-    displayed_data = my_fe[keep,]
+    displayed_data = react_xy_dat()[keep,]
     displayed_groups = input$display_filter
     #print(displayed_groups)
     list_up = react_list_up()
@@ -214,11 +200,13 @@ shinyServer(function(input, output, session) {
     out = list()
     i_x = react_index_x()
     i_y = react_index_y()
-    disp_data = my_fe
-    keep = disp_data[,i_y] > (disp_data[,i_x] + fc_thresh)
-    out$up = rownames(disp_data)[keep]
-    keep = disp_data[,i_x] > (disp_data[,i_y] + fc_thresh)
-    out$down = rownames(disp_data)[keep]
+    dat = react_xy_dat()
+    x = dat[,1]
+    y = dat[,2]
+    keep = y > (x + fc_thresh)
+    out$up = rownames(dat)[keep]
+    keep = x > (y + fc_thresh)
+    out$down = rownames(dat)[keep]
     return(out)
   })
   
@@ -243,7 +231,7 @@ shinyServer(function(input, output, session) {
     out$down = out$down[keep]
     return(out)
   })
-    
+  
   react_loadMACS2 = reactive({
     if(debug) print('react_loadMACS2')
     if(debug) print(paste(react_index_x(), react_index_y()))
@@ -309,14 +297,67 @@ shinyServer(function(input, output, session) {
     return(process_lists(direction, sel_methods))
   })
   
+  #   react_x_name = reactive({
+  #     if(debug) print('react_x_name')
+  #     
+  #     if(input$x_type == xy_type_choices[1]){
+  #       sel = name2index[input$x_values]  
+  #     }else{
+  #       print(input$x_values)
+  #       sel = rna_name2index[input$x_values]  
+  #     }
+  #     
+  #     if(is.null(sel)) sel = 1
+  #     if(length(sel) < 1) sel = 1
+  #     print(paste('lkasjdflajsd', sel))
+  #     return(input$x_type)
+  #   })
   
+  react_x_values = reactive({
+    if(debug) print('react_x_vals')
+    
+    if(input$x_type == xy_type_choices[1]){
+      dat = my_fe[,input$x_values]
+    }else{
+      dat = my_rna[,input$x_values]
+    }
+    #print(dat)
+    return(dat)
+  })
+  
+  react_y_values = reactive({
+    if(debug) print('react_y_vals')
+    
+    if(input$y_type == xy_type_choices[1]){
+      dat = my_fe[,input$y_values]
+    }else{
+      dat = my_rna[,input$y_values]
+    }
+    return(dat)
+  })
+  
+  react_xy_dat = reactive({
+    if(debug) print('react_xy_dat')
+    
+    dat = cbind(react_x_values(), react_y_values())
+    colnames(dat) = c(input$x_values, input$y_values)
+    #print(dat)
+    return(dat)
+  })
   
   react_index_x = reactive({
     if(debug) print('react_index_x')
-    sel = name2index[input$x_values]
+    
+    if(input$x_type == xy_type_choices[1]){
+      sel = name2index[input$x_values]  
+    }else{
+      print(input$x_values)
+      sel = rna_name2index[input$x_values]  
+    }
+    
     if(is.null(sel)) sel = 1
     if(length(sel) < 1) sel = 1
-    print(sel)
+    print(paste('lkasjdflajsd', sel))
     return(sel)
   })
   
@@ -356,14 +397,15 @@ shinyServer(function(input, output, session) {
     i_y = react_index_y()
     filter = input$selection_filter
     disp_data = react_displayed()
-    
+    x = disp_data[,1]
+    y = disp_data[,2]
     if(!is.null(v$brush)){
-      keep = (disp_data[,i_x] > v$brush$xmin & disp_data[,i_x] < v$brush$xmax) &
-        (disp_data[,i_y] > v$brush$ymin & disp_data[,i_y] < v$brush$ymax)
+      keep = (x > v$brush$xmin & x < v$brush$xmax) &
+        (y > v$brush$ymin & y < v$brush$ymax)
       new_selection = rownames(disp_data)[keep]
       new_selection = filter_selections(filter, new_selection, list_up, list_dn)
     }else if(!is.null(v$click1)){
-      data_dist = abs(disp_data[,i_x] - v$click1$x) + abs(disp_data[,i_y] - v$click1$y)
+      data_dist = abs(x - v$click1$x) + abs(y - v$click1$y)
       closest = names(sort(data_dist))
       closest = filter_selections(filter, closest, list_up, list_dn)
       new_selection = closest[1]
@@ -430,7 +472,7 @@ shinyServer(function(input, output, session) {
   
   output$available_methods = renderUI({
     n_hist = length(unique(histone_mods))
-    if(react_index_x() %% n_hist == react_index_y() %% n_hist){
+    if(all(c(input$x_type, input$y_type) == xy_type_choices[1]) && react_index_x() %% n_hist == react_index_y() %% n_hist){
       return(checkboxGroupInput(inputId = 'available_methods', label = 'Differential Methods', choices = selection_method_choices, selected = selection_method_choices[1]))  
     }else{
       return(checkboxGroupInput(inputId = 'available_methods', label = 'Differential Methods', choices = marks_mismatch_message, selected = marks_mismatch_message))  
@@ -439,15 +481,20 @@ shinyServer(function(input, output, session) {
     
   })
   
+  
+  
   output$x_select = renderUI({
-    choices = colnames(my_fe)
-    
+    if(input$x_type == xy_type_choices[[2]]){
+      choices = colnames(my_rna)
+    }else{
+      choices = colnames(my_fe)
+    }
     return(selectInput(inputId = 'x_values', label = 'Select X value ', choices = choices, selected = choices[1]))
+    
   })
   
   output$y_select = renderUI({
     choices = colnames(my_fe)
-    
     return(selectInput(inputId = 'y_values', label = 'Select Y value ', choices = choices, selected = choices[7]))
   })
   

@@ -12,6 +12,10 @@ shinyUI(fluidPage(
     column(width = 6, sliderInput(inputId = 'fg_opacity', label = 'Up/down Opacity', min = 0.05, max = 1, step = .05, value = .8))
   ),
   fluidRow(
+    column(width = 6, radioButtons(inputId = 'x_type', label = 'x-axis datatype', choices = xy_type_choices, selected = xy_type_choices[1])),
+    column(width = 6, radioButtons(inputId = 'y_type', label = 'y-axis datatype', choices = xy_type_choices, selected = xy_type_choices[1]))
+  ),
+  fluidRow(
     column(width = 6, uiOutput(outputId = 'x_select')),
     column(width = 6, uiOutput(outputId = 'y_select'))
   ),

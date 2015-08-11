@@ -4,7 +4,8 @@ if(!exists('loaded')){
   library("RColorBrewer")
   source("scripts/diffpeaks_vs_manorm_vs_fe.R")
   source("scripts//heatmap.3-split.R")
-  
+  source("scripts/heatmap.ngsplots_kmeans_with_sideplot.R")
+  source("scripts/heatmap.res_lists.R")
   
   pre_calc_dir = 'data/precalc_results/'
   if(!dir.exists(pre_calc_dir)){
@@ -23,6 +24,8 @@ if(!exists('loaded')){
   tmp = c(3,4,1,2,5,6)
   my_fe = my_fe[,c(tmp, tmp + 6, tmp + 12)]
   #colnames(my_fe) = gsub('_', ' ', colnames(my_fe))
+  
+  my_rna = rna_norm_matched
   
   ngs_profiles = promoter_wide_matched_prof
   

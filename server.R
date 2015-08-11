@@ -40,7 +40,7 @@ shinyServer(function(input, output, session) {
     }
     detail_desc = paste(paste(input$detail_lines, collapse = ', '), ":", paste(input$detail_marks, collapse = ', '))
     
-    to_plot = unlist(lapply(input$detail_lines, function(x)paste(x, input$detail_marks, sep = '_')))
+    to_plot = unlist(lapply(input$detail_marks, function(x)paste(input$detail_lines, x, sep = '_')))
     if(debug) print('to_plot')
     if(debug) print(to_plot)
     if(input$detail_type == detail_plot_types[2]){#ngs profiles
@@ -50,14 +50,41 @@ shinyServer(function(input, output, session) {
         plotNGS_wBG(sel, bg_ENSGcut_list = NA, list_name = detail_desc, sel_name = 'Selected', linesToPlot = input$detail_lines, marksToPlot = input$detail_marks, smoothing = input$smoothing_window)
         #plot(colMeans(ngs_x[sel,]))
     }else if(input$detail_type == detail_plot_types[3]){#ngs heatmaps
-        if(is.na(ngs_profiles)[1]){
-          ngs_profiles <<- load_ngsprofiles(my_fe)
+        if(length(sel) < 3){
+          plot0()
+          text(.5,.5, 'selection too small for ngsheatmap!')
+          return()
         }
-        sample_a = sub(' ', '_', colnames(my_fe)[i_x])
-        sample_b = sub(' ', '_', colnames(my_fe)[i_y])
-        samples = sub(' ', '_', colnames(my_fe))
+        samples = colnames(my_fe)
+        sample_a = samples[i_x]
+        sample_b = samples[i_y]
+        
         #res = plotNGS_heatmap(sel, c(sample_a, sample_b))
-        res = plotNGS_heatmap(sel, samples)
+        #res = plotNGS_heatmap(sel, samples)
+        sel_prof = lapply(ngs_profiles, function(x){
+          return(x[sel,])
+        })
+        #only do side plot if it won't be confusing
+        doSidePlot = min(c(length(input$detail_marks), length(input$detail_lines))) == 1
+        nclust = min(8, length(sel)-1)
+        nr = 4 + nclust
+        nc = 7
+        if(doSidePlot) nc = nc + 1
+        lmat_custom = matrix(0, ncol = nc, nrow = nr)
+        lmat_custom[nr-1,nc-2] = 1
+        lmat_custom[nr-1,nc-1] = 2
+        lmat_custom[nr,-2:-1+nc] = 3
+        lmat_custom[1,nc] = 4
+        res = heatmap.ngsplots(sel_prof, nclust = nclust, cex.col = 3.3, doSidePlot = doSidePlot, labelWithCounts = T, extraData = my_rna, lmat_custom = lmat_custom,
+                               detail_desc, profiles_to_plot = to_plot, 
+                               forPDF = F, globalScale = .6, 
+                               labels_below = rep(input$detail_lines, length(input$detail_marks)), 
+                               labels_above = input$detail_marks)
+        
+          plot0();text(.5,.5, 'average profile')
+          plot0();text(.5,.5, 'log gene expression')
+          plot0();legend('center', legend = c('MCF10A', 'MCF7', 'MDA231'), fill = RColorBrewer::brewer.pal(3, 'Set1'), horiz = T, bty = 'n')
+          plot0();text(.5,.5, 'cluster size')
         v$hmap_res = res
         clear_hmap_res = F
         #plot(colMeans(ngs_x[sel,]))
@@ -70,7 +97,7 @@ shinyServer(function(input, output, session) {
         axis(side = 1, at = 1:ncol(my_fe), labels = colnames(my_fe), las = 2)
         title(ensg_dict[sel,]$gene_name)
       }else{
-        res = heatmap.3(disp_data[sel,], nsplits = 2, classCount = min(6, length(sel)), main = paste(length(sel), 'selected genes'), key.xlab = 'log2 FE', key.title = '')
+        res = heatmap.3(disp_data[sel,to_plot], nsplits = 2, classCount = min(6, length(sel)), main = paste(length(sel), 'selected genes'), key.xlab = 'log2 FE', key.title = '')
         v$hmap_res = res
         clear_hmap_res = F
       }
@@ -446,9 +473,10 @@ shinyServer(function(input, output, session) {
       return(out_table)
     }else{
       res = v$hmap_res
-      colors = res[[4]]
-      asPlotted = rownames(res[[3]])
-      classSizes = res[[1]]
+      colors = res[['colors']]
+      asPlotted = rownames(res[['as_plotted']])
+      classSizes = res[['class_sizes']]
+      print(classSizes)
       ensg2colors = rep(colors[1], length(asPlotted))
       names(ensg2colors) = asPlotted
       for(i in 2:length(colors)){

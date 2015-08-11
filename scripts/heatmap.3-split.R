@@ -5,15 +5,15 @@ getHeatmapClass = function(resultsFromHeatmap, classIndex){
   res = resultsFromHeatmap
   sizes = res[[1]]
   o = res[[2]]
-  asPlotted = res[[3]]
+  as_plotted = res[[3]]
   begin = 1
   end = sizes[1]
   if(classIndex > 1){
     begin = sum(sizes[1:(classIndex-1)]) + 1
     end = sum(sizes[1:(classIndex)])
   }
-  #asPlotted = asPlotted[o,]
-  return(rownames(asPlotted)[begin:end])
+  #as_plotted = as_plotted[o,]
+  return(rownames(as_plotted)[begin:end])
 }
 
 
@@ -828,7 +828,7 @@ heatmap.3 <- function (x,
   x=t(x)
   x=x[rev(1:nrow(x)),]
   rowInd=rev(rowInd)
-  return(list(o[,2],rowInd,x,colors))
+  return(list(class_sizes = o[,2],order = rowInd,as_plotted = x,colors = colors))
 }
 
 
@@ -1104,10 +1104,10 @@ write.HeatmapLists = function(heatmap3_output, name = "heatmap_lists", output_di
   root = paste(output_directory, name, sep = "/")
   print(root)
   classSizes = res[[1]]
-  asPlotted = res[[3]]
+  as_plotted = res[[3]]
   classColors = res[[4]]
   data_out = matrix(0, nrow = sum(classSizes), ncol = 3)
-  data_out[,1:2] = as.matrix(indexDict[rownames(asPlotted),c(1,4)])
+  data_out[,1:2] = as.matrix(indexDict[rownames(as_plotted),c(1,4)])
   colors_out = matrix('black', nrow = sum(classSizes), ncol = 3)
   soFar = 0
   for(j in 1:length(classSizes)){
@@ -1128,20 +1128,20 @@ write.HeatmapLists = function(heatmap3_output, name = "heatmap_lists", output_di
   
   write.table(x = sub(data_out,pattern = ",",replacement = " "),file = paste(root,'.csv', sep = ''), quote = F, row.names = F, col.names = F, sep = ',')
   
-  rownames(asPlotted) = indexDict[rownames(asPlotted),1]
-  asPlotted = cbind(rownames(asPlotted),asPlotted)
-  colnames(asPlotted)[1] = 'Symbol'
-  asPlotted = unlist(strsplit(asPlotted[,1], split = ','))
-  write.table(x = asPlotted,file = paste(root,'_ipa.txt', sep = ''), col.names = F, row.names = F, quote = F, sep = '\t')
+  rownames(as_plotted) = indexDict[rownames(as_plotted),1]
+  as_plotted = cbind(rownames(as_plotted),as_plotted)
+  colnames(as_plotted)[1] = 'Symbol'
+  as_plotted = unlist(strsplit(as_plotted[,1], split = ','))
+  write.table(x = as_plotted,file = paste(root,'_ipa.txt', sep = ''), col.names = F, row.names = F, quote = F, sep = '\t')
   
 }
 
 plot.HeatmapLists = function(heatmap3_output){
   res = heatmap3_output
   classSizes = res[[1]]
-  asPlotted = res[[3]]
+  as_plotted = res[[3]]
   classColors = res[[4]]
-  data_out = matrix(rownames(asPlotted), ncol = 1)
+  data_out = matrix(rownames(as_plotted), ncol = 1)
   colors_out = matrix('black', nrow = sum(classSizes), ncol = 1)
   soFar = 0
   for(j in 1:length(classSizes)){

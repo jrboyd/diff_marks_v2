@@ -544,4 +544,47 @@ shinyServer(function(input, output, session) {
     }
     
   }, sanitize.text.function = force)    
+  
+  #download handlers
+  
+  
+  
+  dl_tablename = reactive({
+    fname = dl_name()
+    fname = paste('table_',fname, '.csv', sep = '')
+  })
+  
+  content_table = function(file){
+    ensg = selected_list()
+    ac = active_columns()
+    out = cbind(ensg, ensg2sym[ensg])
+    colnames(out) = c('ensg', 'gene_symbol')
+    for(i in 1:length(ac)){
+      out = cbind(out, padj[ensg,ac[i], drop = F], fc[ensg,ac[i], drop = F], maxes[ensg,ac[i], drop = F])
+      colnames(out)[(3+3*(i - 1)):(5+3*(i - 1))] = paste(ac[i], c('log10 padj', 'log2 fc', 'log2 max'))
+    }
+    write.table(out, file = file, row.names = F, col.names = T, quote = F, sep =',')
+  }
+  
+  output$dl_table = downloadHandler(
+    filename = dl_tablename,
+    content = content_table
+  )
+  
+  ###volcano plot download
+  dl_volcname = reactive({
+    fname = dl_name()
+    fname = paste('volcano_',fname, '.pdf', sep = '')
+  })
+  content_volc = function(file){
+    pdf(file)
+    plot0()
+    text(.5,.5,'empty plot')
+    dev.off()
+  }
+  output$dl_volcano = downloadHandler(
+    filename = dl_volcname,
+    content = content_volc
+  )
+  
 })

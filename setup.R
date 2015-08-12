@@ -1,4 +1,4 @@
-if(!exists('loaded') && loaded){
+if(!exists('loaded')){
   library("shiny")
   library("xtable")
   library("RColorBrewer")

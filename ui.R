@@ -25,9 +25,9 @@ shinyUI(fluidPage(
     column(width = 4, uiOutput(outputId = 'detail_marks'))#checkboxGroupInput(inputId = 'detail_marks', label = 'Detail Histone Marks', choices = histone_mods, selected = detail_plot_types[4]))
     
   ),
-#   fluidRow(
-#     column(width = 3,radioButtons(inputId = 'updown', label = 'Fold change direction', choices = c('up', 'down', 'either', 'no change'), selected = 'either'))
-#   ),
+  #   fluidRow(
+  #     column(width = 3,radioButtons(inputId = 'updown', label = 'Fold change direction', choices = c('up', 'down', 'either', 'no change'), selected = 'either'))
+  #   ),
   fluidRow(
     column(width = 3, sliderInput('detect_threshold', label = 'log2 detection threshold', min = 0, max = 6, value = 2, step = .25)),
     column(width = 3, sliderInput('pval_threshold', label = '-log10 p-value threshold', min = 0, max = 150, value = 9)),
@@ -45,8 +45,12 @@ shinyUI(fluidPage(
     column(plotOutput('detail_plot'), width = 6)
     
   ),
+  fluidRow(
+    downloadButton('dl_table', 'Download Selected Table'),
+    downloadButton('dl_volcano', 'Download Volcano Plot')
+  ),
   tableOutput('selTable')
-#,
+  #,
   #uiOutput('select_gene_list')
 )
 

@@ -529,28 +529,21 @@ shinyServer(function(input, output, session) {
     return(selectInput(inputId = 'y_values', label = 'Select Y value ', choices = choices, selected = choices[7]))
   })
   
-  output$selTable = renderTable({
-    disp_data = react_displayed()
-    sel = react_selected()
-    sel = intersect(rownames(disp_data), sel)
-    
+  get_sel_table = function(sel, hmap_res ){
     if(length(sel) < 1){
-      return(xtable(as.data.frame('no data selected')))
+      return(matrix('no data selected'))
     }
-    
-    
-    if(is.null(v$hmap_res)){
+    if(is.null(hmap_res)){
       sel_as_symbols = ensg_dict[sel,]$gene_name
       sel_as_position = ensg_dict[sel,]$ucsc
       base_url = 'https://genome.ucsc.edu/cgi-bin/hgTracks?hgS_doOtherUser=submit&hgS_otherUserName=jrboyd&hgS_otherUserSessionName=TM_K4_with_peaks'
       sel_as_urls = paste0(base_url, '&position=', sel_as_position)
       sel_as_urls = paste0('<a target="_blank" href="', sel_as_urls, '">On UCSC</a>') 
-      out_table = xtable(as.data.frame(cbind(sel, sel_as_symbols, sel_as_position, sel_as_urls)))
+      out_table = cbind(sel, sel_as_symbols, sel_as_position, sel_as_urls)
       colnames(out_table) = c('ENSG ID', 'Gene Symbol', 'Position', 'Promoter in UCSC')
-      
       return(out_table)
     }else{
-      res = v$hmap_res
+      res = hmap_res
       colors = res[['colors']]
       asPlotted = rownames(res[['as_plotted']])
       classSizes = res[['class_sizes']]
@@ -561,39 +554,93 @@ shinyServer(function(input, output, session) {
         end = sum(classSizes[1:i])
         ensg2colors[start:end] = colors[i]
       }
+      num = 1:length(unique(ensg2colors))
+      names(num) = unique(ensg2colors)
+      ensg2num = num[ensg2colors]
       sel = asPlotted
       sel_as_symbols = ensg_dict[sel,]$gene_name
       sel_as_position = ensg_dict[sel,]$ucsc
       base_url = 'https://genome.ucsc.edu/cgi-bin/hgTracks?hgS_doOtherUser=submit&hgS_otherUserName=jrboyd&hgS_otherUserSessionName=TM_K4_with_peaks'
       sel_as_urls = paste0(base_url, '&position=', sel_as_position)
       sel_as_urls = paste0('<a target="_blank" href="', sel_as_urls, '">On UCSC</a>') 
-      out_table = xtable(as.data.frame(cbind(sel, sel_as_symbols, sel_as_position, sel_as_urls, paste0('<td bgcolor="', ensg2colors, '">',sel_as_symbols,'</td>'))))
+      out_table = cbind(sel, sel_as_symbols, sel_as_position, sel_as_urls, paste0('<td bgcolor="', ensg2colors, '">',ensg2num,'</td>'))
       colnames(out_table) = c('ENSG ID', 'Gene Symbol', 'Position', 'Promoter in UCSC', 'Cluster')
       rownames(out_table) = NULL
       return(out_table)
     }
+  }
+  
+  output$selTable = renderTable({
+    disp_data = react_displayed()
+    sel = react_selected()
+    sel = intersect(rownames(disp_data), sel)
     
+    if(length(sel) < 1){
+      return(xtable(as.data.frame('no data selected')))
+    }
+    out_table = xtable(as.data.frame(get_sel_table(sel, v$hmap_res)))
+    return(out_table)
   }, sanitize.text.function = force)    
   
   #download handlers
-  
+  dl_name = function(){
+   
+    return('test')
+  }
   
   
   dl_tablename = reactive({
     fname = dl_name()
-    fname = paste('table_',fname, '.csv', sep = '')
+    fname = paste('table_',fname, '.xlsx', sep = '')
   })
   
   content_table = function(file){
-    ensg = selected_list()
-    ac = active_columns()
-    out = cbind(ensg, ensg2sym[ensg])
-    colnames(out) = c('ensg', 'gene_symbol')
-    for(i in 1:length(ac)){
-      out = cbind(out, padj[ensg,ac[i], drop = F], fc[ensg,ac[i], drop = F], maxes[ensg,ac[i], drop = F])
-      colnames(out)[(3+3*(i - 1)):(5+3*(i - 1))] = paste(ac[i], c('log10 padj', 'log2 fc', 'log2 max'))
+    sel = react_selected()
+#     ac = active_columns()
+#     out = cbind(ensg, ensg2sym[ensg])
+#     colnames(out) = c('ensg', 'gene_symbol')
+#     for(i in 1:length(ac)){
+#       out = cbind(out, padj[ensg,ac[i], drop = F], fc[ensg,ac[i], drop = F], maxes[ensg,ac[i], drop = F])
+#       colnames(out)[(3+3*(i - 1)):(5+3*(i - 1))] = paste(ac[i], c('log10 padj', 'log2 fc', 'log2 max'))
+#     }
+    out = get_sel_table(sel, v$hmap_res)
+    html_key = 'Promoter in UCSC'
+    html = out[,html_key]
+    links = sapply(strsplit(html, '"'), function(x)return(x[4]))
+    labels = sapply(strsplit(html, '"'), function(x)return(x[5]))
+    labels = sub(">", '', labels)
+    labels = sub("</a>", '', labels)
+    out[,html_key] = paste('=HYPERLINK(', links,',', labels,')', sep = '"')
+     cluster_key = 'Cluster'
+     cluster_nums = sub('</td', '', sapply(strsplit(out[,cluster_key], '>'), function(x)return(x[2])))
+     cluster_fill = sapply(strsplit(out[,cluster_key], '"'), function(x)return(x[2]))
+     out[,cluster_key] = cluster_nums
+    my_wb <- createWorkbook()
+    my_wb1 <- createSheet(wb=my_wb, sheetName="selected list")
+    my_wb2 <- createSheet(wb=my_wb, sheetName="parameters")
+    addDataFrame(x=out, sheet=my_wb1, row.names = F, col.names = T)
+    nr = length(getRows(my_wb1))
+    nc = length(getCells(getRows(my_wb1)[1]))
+    rows = getRows(my_wb1)[2:nr]
+    html_i = (1:ncol(out))[colnames(out) == html_key]
+    html_col = getCells(rows, html_i)
+    for(i in 1:length(links)){
+      cell = html_col[[i]]
+      setCellValue(cell, labels[i])
+      addHyperlink(cell, links[i])
     }
-    write.table(out, file = file, row.names = F, col.names = T, quote = F, sep =',')
+    cluster_CB = CellBlock(my_wb1, 2, html_i+1, nr-1, 1, create = F)
+    colors = unique(cluster_fill)
+    for(i in 1:length(colors)){
+      my_fill = Fill(foregroundColor = colors[i])
+      fill_rows = (1:(nr-1))[cluster_fill == colors[i]]
+      CB.setFill(cluster_CB, my_fill, fill_rows, 1)
+    }
+    
+    autoSizeColumn(my_wb1, colIndex = 1:nc)
+    addDataFrame(x='parameters go here', sheet=my_wb2)
+    saveWorkbook(my_wb, file)
+    #write.xlsx2(out, file = file, sheetName = '1', row.names = F, col.names = T)#, quote = F, sep =',')
   }
   
   output$dl_table = downloadHandler(

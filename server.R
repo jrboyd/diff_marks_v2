@@ -1,5 +1,4 @@
 source('setup.R')
-source('reactions.R')
 
 shinyServer(function(input, output, session) {
   
@@ -60,7 +59,7 @@ shinyServer(function(input, output, session) {
       })
       #only do side plot if it won't be confusing
       doSidePlot = min(c(length(input$detail_marks), length(input$detail_lines))) == 1
-      nclust = min(8, length(sel)-1)
+      nclust = min(6, length(sel)-1)
       nr = 4 + nclust
       nc = 6
       if(doSidePlot) nc = nc + 2
@@ -69,7 +68,7 @@ shinyServer(function(input, output, session) {
       lmat_custom[nr-1,nc-1] = 2
       lmat_custom[nr,-2:-1+nc] = 3
       lmat_custom[1,nc] = 4
-      res = heatmap.ngsplots(sel_prof, nclust = nclust, cex.col = 3.3, doSidePlot = doSidePlot, labelWithCounts = T, extraData = my_rna, lmat_custom = lmat_custom,
+      res = heatmap.ngsplots(sel_prof, nclust = nclust, cex.col = 3.3, doSidePlot = doSidePlot, labelWithCounts = T, extraData = my_rna, lmat_custom = lmat_custom,cex.row = 2.5, labels_right = character(),
                              detail_desc, profiles_to_plot = to_plot, 
                              forPDF = F, globalScale = .6, 
                              labels_below = rep(input$detail_lines, length(input$detail_marks)), 
@@ -92,7 +91,7 @@ shinyServer(function(input, output, session) {
       }else{
         print(colnames(disp_data))
         print(to_plot)
-        res = heatmap.3(disp_data[sel,to_plot], nsplits = length(input$detail_marks), classCount = min(6, length(sel)), main = paste(length(sel), 'selected genes'), key.xlab = 'log2 FE', key.title = '')
+        res = heatmap.3(disp_data[sel,to_plot,drop = F], nsplits = length(input$detail_marks), classCount = min(6, length(sel)), main = paste(length(sel), 'selected genes'), key.xlab = 'log2 FE', key.title = '')
         v$hmap_res = res
         clear_hmap_res = F
       }
@@ -168,12 +167,24 @@ shinyServer(function(input, output, session) {
   
   react_displayed = reactive({
     if(debug) print('react_displayed')
+    
+    
+    
     keep = apply(my_fe,1,max) > input$detect_threshold
     displayed_data = react_xy_dat()[keep,]
     displayed_groups = input$display_filter
     #print(displayed_groups)
     list_up = react_list_up()
     list_dn = react_list_dn()
+    if(!is.null(react_deseq())){
+      deseq_updown = react_deseq()
+      list_up = deseq_updown$up
+      list_dn = deseq_updown$down
+      print(list_up)
+    }
+    list_up = intersect(list_up, rownames(displayed_data))
+    list_dn = intersect(list_dn, rownames(displayed_data))
+    
     for(disp_grp in display_filter_choices){
       if(!any(disp_grp == displayed_groups)){#group not selected for display, remove from displayed_data.
         if(disp_grp == display_filter_choices[1]){#bg
@@ -336,6 +347,35 @@ shinyServer(function(input, output, session) {
     return(dat)
   })
   
+  react_deseq = reactive({
+    dpair = input$deseq_pair
+    if(dpair == deseq_groups[1]){#none option selected
+      return(NULL)
+    }
+    dpair = gsub(' ', '_', dpair)
+    line_a = strsplit(dpair, '_')[[1]][1]
+    line_b = strsplit(dpair, '_')[[1]][3]
+    dpair = paste(dpair, c('UP', 'DOWN'), sep = '_')
+    up_res = deseq_results[[dpair[2]]]
+    down_res = deseq_results[[dpair[1]]]
+
+    keep = -log10(up_res) > input$pval_threshold
+    
+    up_res = names(up_res)[keep]
+    keep = (my_rna[up_res,line_b] - my_rna[up_res,line_a]) > input$fc_threshold
+    print(range(my_rna[up_res,line_b] - my_rna[up_res,line_a]))
+    up_res = up_res[keep]
+    
+    keep = -log10(down_res) > input$pval_threshold
+    down_res = names(down_res)[keep]
+    keep = my_rna[down_res,line_b] - my_rna[down_res,line_a] < -input$fc_threshold
+    down_res = down_res[keep]
+    print(up_res)
+    out = list(up = up_res, down = down_res)
+    
+    return(out)
+  })
+  
   react_xy_dat = reactive({
     if(debug) print('react_xy_dat')
     
@@ -351,13 +391,11 @@ shinyServer(function(input, output, session) {
     if(input$x_type == xy_type_choices[1]){
       sel = name2index[input$x_values]  
     }else{
-      print(input$x_values)
       sel = rna_name2index[input$x_values]  
     }
     
     if(is.null(sel)) sel = 1
     if(length(sel) < 1) sel = 1
-    print(paste('lkasjdflajsd', sel))
     return(sel)
   })
   
@@ -448,20 +486,13 @@ shinyServer(function(input, output, session) {
     if(debug) print('brush')
     v$brush = input$volcano_brush
     v$n <- v$n + 1
-    #print(v$n)
     vb = v$brush
     v$click1 = NULL
-    #print(names(vb))
-    #v$select_rect = v$brush
-    #print(vb$domain$left)
-    #print(vb$range)
   })
   
   # Handle bush on the plot
   observeEvent(input$volcano_hover, {
-    #print('click')
     v$hover = input$volcano_hover
-    #print(v$hover)
   })
   
   observeEvent(input$reset, {
@@ -523,7 +554,6 @@ shinyServer(function(input, output, session) {
       colors = res[['colors']]
       asPlotted = rownames(res[['as_plotted']])
       classSizes = res[['class_sizes']]
-      print(classSizes)
       ensg2colors = rep(colors[1], length(asPlotted))
       names(ensg2colors) = asPlotted
       for(i in 2:length(colors)){

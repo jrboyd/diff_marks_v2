@@ -827,13 +827,13 @@ heatmap.2.2 = function (x,
   }
   if(!is.null(extraData)){
     par(mai = rep(0, 4), xpd = T)
-    YMIN = 75
-    YMAX = quantile(extraData, .95)
+    YMIN = 0
+    YMAX = 20
     for(i in 1:nclust){
       #       plot0()
       #       box()
       subset = rownames(clust$data)[clust$cluster == i]
-      dat = extraData[subset,, drop = F] + 64
+      dat = extraData[subset,, drop = F]# + 64
       colnames(dat) = NULL
       M = colMeans(dat)
       n = nrow(dat)
@@ -848,8 +848,8 @@ heatmap.2.2 = function (x,
       if(any(is.na(high))) high = mid
       
       low = ifelse(low <= 0, 1, low)
-      barplot2(mid, , ci.l = low, ci.u = high, col = colorClasses, plot.ci = T, log = 'y', ylim = c(YMIN,YMAX), axes = F, space = 0, bty = 'o')
-      for(pos in c(150,300,600,1200)){
+      barplot2(mid, ci.l = low, ci.u = high, col = colorClasses, plot.ci = T, ylim = c(YMIN,YMAX), axes = F, space = 0, bty = 'o')
+      for(pos in c(4,8,12,16)){
         lines(c(0,nclust+1), c(pos,pos), lty = 2) 
       }
       

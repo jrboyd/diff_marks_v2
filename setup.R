@@ -1,4 +1,4 @@
-if(!exists('loaded') && loaded){
+if(!exists('loaded') ){
   library("shiny")
   library("xtable")
   library("RColorBrewer")
@@ -9,7 +9,7 @@ if(!exists('loaded') && loaded){
   
   pre_calc_dir = 'data/precalc_results/'
   if(!dir.exists(pre_calc_dir)){
-    pre_calc_dir = '/slipstream/home/joeboyd/data/precalc_4shiny'  
+    pre_calc_dir = '/slipstream/home/joeboyd/data/precalc_results'  
   }
   if(!dir.exists(pre_calc_dir)){
    stop('no valid pre calc results found! please update pre_calc_dir') 
@@ -25,7 +25,7 @@ if(!exists('loaded') && loaded){
   my_fe = my_fe[,c(tmp, tmp + 6, tmp + 12)]
   #colnames(my_fe) = gsub('_', ' ', colnames(my_fe))
   
-  my_rna = rna_norm_matched
+  my_rna = log2(rna_norm_matched + 4)
   colnames(my_rna) = sub('_rna', '', colnames(my_rna))
   
   ngs_profiles = lapply(promoter_wide_matched_prof,  function(x){
@@ -45,6 +45,7 @@ if(!exists('loaded') && loaded){
   selection_filter_choices = c("Up or Down", "Up", "Down", "Unchanged", 'No Filter')
   selection_method_choices = c("Fold Change", "MAnorm", "MACS2 bdgdiff")
   detail_plot_types = c("None", "ngsplots - profiles", "ngsplots - heatmap", "FE heatmap")
+  deseq_groups = c('none', 'MCF10A vs MCF7', 'MCF10A vs MDA231', 'MCF7 vs MDA231')
   
   column_choices = colnames(my_fe)
   lines = sapply(strsplit(column_choices, '_'), function(x)return(x[1]))
@@ -68,7 +69,7 @@ if(!exists('loaded') && loaded){
   
   plot0 = function(width = 1, height = 1){
     fudge = 0.037037037037
-    plot(c(0+fudge*width, width-fudge * width), c(0+fudge*height, height-fudge * height), type = 'n', xlab = '', ylab = '', axes = F, )
+    plot(c(0+fudge*width, width-fudge * width), c(0+fudge*height, height-fudge * height), type = 'n', xlab = '', ylab = '', axes = F)
   }
   marks_mismatch_message = "FC (marks don't match)"
   

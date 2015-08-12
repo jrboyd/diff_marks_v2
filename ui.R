@@ -4,8 +4,12 @@ shinyUI(fluidPage(
   headerPanel('Differential ChIPSeq methods comparison'),
   fluidRow(
     column(width = 6, checkboxGroupInput(inputId = 'display_filter', label = 'Point Display Filtering', choices = display_filter_choices, selected = display_filter_choices)),
-    column(width = 6, radioButtons(inputId = 'selection_filter', label = 'Point Selection Filtering', choices = selection_filter_choices, selected = selection_filter_choices[1])),
-    column(width = 6, uiOutput(outputId = 'available_methods'))
+    column(width = 6, radioButtons(inputId = 'selection_filter', label = 'Point Selection Filtering', choices = selection_filter_choices, selected = selection_filter_choices[1]))
+    
+  ),
+  fluidRow(
+    column(width = 6, uiOutput(outputId = 'available_methods')),
+    column(width = 6, radioButtons(inputId = 'deseq_pair', label = 'Deseq2 Results Filtering', choices = deseq_groups, selected = deseq_groups[1]))
   ),
   fluidRow(
     column(width = 6, sliderInput(inputId = 'bg_opacity', label = 'Background Opacity', min = 0.05, max = 1, step = .05, value = .15)),

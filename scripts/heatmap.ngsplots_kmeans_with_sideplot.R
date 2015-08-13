@@ -533,7 +533,7 @@ heatmap.2.2 = function (x,
     if(class(lmat_custom) != 'matrix'){
       stop('class of lmat_custom must be matrix')
     }
-    if(dim(lmat_custom) != dim(lmat)){
+    if(any(dim(lmat_custom) != dim(lmat))){
       stop(paste("lmat_custom does not match lmat. dim was", 
                  paste(dim(lmat_custom), collapse = ', '), 
                  "dim should be", 
@@ -799,7 +799,8 @@ heatmap.2.2 = function (x,
     nsplits = length(colsep.minor)+1
     win = ncol(avgA) / nsplits
     #     print(avgA)
-    colorClasses = RColorBrewer::brewer.pal(nsplits, 'Set1')
+    colorClasses = RColorBrewer::brewer.pal(max(nsplits,3), 'Set1')
+    colorClasses = colorClasses[1:nsplits]#stupid colorbrewer min classes warning workaround
     for (i in 1:nclust) { 
       xrange <- as.numeric(range(1:(ncol(avgA)/nsplits)))
       yrange <- range(avgA)
@@ -839,7 +840,8 @@ heatmap.2.2 = function (x,
       n = nrow(dat)
       s = apply(dat, 2, sd)
       SE = s / sqrt(n)
-      E = qt(.975, df=n - 1) * SE
+      E = 0
+      if(n > 1) E = qt(.975, df=n - 1) * SE
       low = M - E
       mid = M
       high = M + E

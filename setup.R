@@ -2,7 +2,7 @@ if(!exists('loaded')){
   library("shiny")
   library("xtable")
   library("RColorBrewer")
-  source("scripts/diffpeaks_vs_manorm_vs_fe.R")
+  library("xlsx")
   source("scripts//heatmap.3-split.R")
   source("scripts/heatmap.ngsplots_kmeans_with_sideplot.R")
   source("scripts/heatmap.res_lists.R")

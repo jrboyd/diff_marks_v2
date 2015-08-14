@@ -74,8 +74,7 @@ shinyServer(function(input, output, session) {
   
   
   output$detail_plot_ui = renderUI({
-    
-    plotOutput('detail_plot', width = input$detail_width * 100, height = input$detail_height * 100)
+    plotOutput('detail_plot', width = input$detail_width * 100, height = 650)
   })
   
   output$detail_plot = renderPlot({
@@ -102,6 +101,14 @@ shinyServer(function(input, output, session) {
     
     hmap_res = plot_details(disp_data, list_up, list_dn, sel, lines2plot, marks2plot, plot_type, smoothing_window)
     if(!is.null(hmap_res)){ v$hmap_res = hmap_res}else{v$hmap_res = NULL}
+  })
+  
+  output$volcano_ui = renderUI({
+    plotOutput('volcano', 
+               dblclick = "volcano_dblclick",
+               click = 'volcano_click',
+               brush = brushOpts(id = 'volcano_brush', delay = 600, delayType = 'debounce', resetOnNew = T),
+               hover = 'volcano_hover', width = 100*input$volcano_size, height = 100*input$volcano_size)
   })
   
   output$volcano =  renderPlot({
@@ -141,11 +148,11 @@ shinyServer(function(input, output, session) {
       MIN = min(disp_data)
       MAX = max(disp_data)
       plot_merge(data = disp_data, list_a = list_up, list_b = list_dn, colors = colors, note = note,
-                 xlab = paste(name_a, 'log2 FE'), ylab = paste(name_b, 'log2 FE'), xlim = c(MIN, MAX), ylim = c(MIN, MAX), cex = .8)
+                 xlab = paste(name_a, 'log2 FE'), ylab = paste(name_b, 'log2 FE'), xlim = c(-MAX, MAX), ylim = c(MIN, MAX), cex = .8)
       detect_thresh = input$detect_threshold
       if(detect_thresh > 0){
-        lines(c(MIN, detect_thresh), c(detect_thresh, detect_thresh), col = 'yellow')
-        lines(c(detect_thresh, detect_thresh), c(MIN, detect_thresh),  col = 'yellow')
+        lines(c(-MAX, MAX), c(detect_thresh, detect_thresh), col = 'yellow')
+        #lines(c(detect_thresh, detect_thresh), c(MIN, detect_thresh),  col = 'yellow')
       }
     }, silent = F)
   })
@@ -388,7 +395,6 @@ shinyServer(function(input, output, session) {
   
   react_get_selected = reactive({
     if(debug) print('react_get_selected')
-    
     list_up = react_list_up()
     list_dn = react_list_dn()
     filter = input$selection_filter
@@ -476,7 +482,8 @@ shinyServer(function(input, output, session) {
     }
     out_table = xtable(as.data.frame(get_sel_table(sel, v$hmap_res)))
     return(out_table)
-  }, sanitize.text.function = force)   
+  }, sanitize.t /.ext.function = force)   
+  
   
   output$selTable = renderTable({
     if(!v$volcano_ready){

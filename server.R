@@ -72,6 +72,12 @@ shinyServer(function(input, output, session) {
     checkboxGroupInput(inputId = 'detail_marks', label = 'Detail Histone Marks', choices = histone_mods, selected = default)
   })
   
+  
+  output$detail_plot_ui = renderUI({
+    
+    plotOutput('detail_plot', width = input$detail_width * 100, height = input$detail_height * 100)
+  })
+  
   output$detail_plot = renderPlot({
     if(debug) print("detail_plot")
     if(!v$volcano_ready){

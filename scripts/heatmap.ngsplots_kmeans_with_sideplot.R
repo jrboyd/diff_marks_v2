@@ -404,7 +404,7 @@ heatmap.2.2 = function (x,
                         labels_rowsep = NULL,
                         
                         #left margin size
-                        left_mai = .7,
+                        left_mai = .2,
                         
                         #color key
                         key = T, 
@@ -447,6 +447,11 @@ heatmap.2.2 = function (x,
   lwid = c(key_width, body_width - key_width)
   lhei = rep(body_height /nclust, nclust)
   
+  label.height = .5
+  main.height = .8
+  extraDataSize = 1.5
+  sidePlotSize = 4.5
+  
   add_lmat_left = function(added_width){
     lmat <<- cbind(rep(0, nrow(lmat)), lmat)
     added_width = added_width * globalScale
@@ -487,9 +492,7 @@ heatmap.2.2 = function (x,
   }
   
   
-  label.height = .5
-  main.height = .8
-  
+
   if(!is.null(labels.above)){
     add_lmat_top(label.height)
   }
@@ -502,24 +505,20 @@ heatmap.2.2 = function (x,
   if(key){
     add_lmat_bottom(key.height, body_xpos = 1)
   }
-  
   RowSideColors_size = 1
   if (!is.null(RowSideColors)) {
     if (!is.character(RowSideColors) || length(RowSideColors) != nrow(x)) 
       stop("'RowSideColors' must be a character vector of length nrow(x)")
     add_lmat_right(RowSideColors_size, solid = T)
   }
-  #  
-  sidePlotSize = 1.5
   if(doSidePlot){
-    add_lmat_right(.3*sidePlotSize, solid = T)
-    add_lmat_right(.7*sidePlotSize, solid = F)
+    add_lmat_right(1, solid = T)
+    add_lmat_right(sidePlotSize-1, solid = F)
     #     lmat <- lmat <- cbind(lmat, c(rep(0, min(body_iy)-1), rep(max(lmat)+1, nclust), rep(0, nrow(lmat)-max(body_iy))))
     #     lmat <- lmat <- cbind(lmat, c(rep(0, min(body_iy)-1), (max(lmat)+1):(max(lmat) + nclust), rep(0, nrow(lmat)-max(body_iy))))
     #     lwid[body_ix] = lwid[body_ix] - sidePlotSize
     #    lwid <- c(lwid, .3*sidePlotSize, .7*sidePlotSize)
   }
-  extraDataSize = 1
   if(!is.null(extraData)){
     add_lmat_right(extraDataSize, solid = F)
   }

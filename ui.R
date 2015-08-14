@@ -1,4 +1,5 @@
 source('setup.R')
+plot_size = "600px"
 
 shinyUI(fluidPage(
   headerPanel('Differential ChIPSeq methods comparison'),
@@ -33,22 +34,36 @@ shinyUI(fluidPage(
   #     column(width = 3,radioButtons(inputId = 'updown', label = 'Fold change direction', choices = c('up', 'down', 'either', 'no change'), selected = 'either'))
   #   ),
   fluidRow(
-    column(width = 3, sliderInput('detect_threshold', label = 'log2 detection threshold', min = 0, max = 6, value = 2, step = .25)),
-    column(width = 3, sliderInput('pval_threshold', label = '-log10 p-value threshold', min = 0, max = 150, value = 9)),
-    column(width = 3, sliderInput('fc_threshold', label = 'log2 fold-change threshold', min = 0, max = 6, value = 2, step = .5)),
+    
     column(width = 3, sliderInput('smoothing_window', label = 'Smoothing Window', min = 1, max = 20, value = 5, step = 1))
     #column(width = 4, sliderInput('maxes_threshold', label = 'log2 max threshold', min = 0, max = 16, value = 2))
   ),
-  fluidRow(
-    column(plotOutput('volcano',
-                      dblclick = "volcano_dblclick",
-                      click = 'volcano_click',
-                      brush = brushOpts(id = 'volcano_brush', delay = 600, delayType = 'debounce', resetOnNew = T),
-                      hover = 'volcano_hover'),
-           width = 6),
-    column(plotOutput('detail_plot'), width = 6)
-    
+  sidebarLayout(
+    sidebarPanel(width = 2,
+                 sliderInput('volcano_size', label = 'Volcano Plot Size', min = 1, max = 8, value = 3, step = .5)
+    ),
+    mainPanel(
+      plotOutput('volcano',
+                 dblclick = "volcano_dblclick",
+                 click = 'volcano_click',
+                 brush = brushOpts(id = 'volcano_brush', delay = 600, delayType = 'debounce', resetOnNew = T),
+                 hover = 'volcano_hover', width = plot_size, height = plot_size)
+    )
   ),
+  sidebarLayout(
+    sidebarPanel(width = 2,
+                 sliderInput('detail_width', label = 'Detail Plot Width', min = 1, max = 16, value = 8, step = .5),
+                 sliderInput('detail_height', label = 'Detail Plot Height', min = 1, max = 8, value = 6, step = .5),
+                 sliderInput('detect_threshold', label = 'log2 detection threshold', min = 0, max = 6, value = 2, step = .25),
+                 sliderInput('pval_threshold', label = '-log10 p-value threshold', min = 0, max = 150, value = 9),
+                 sliderInput('fc_threshold', label = 'log2 fold-change threshold', min = 0, max = 6, value = 2, step = .5)
+    ),
+    mainPanel(
+      uiOutput("detail_plot_ui")
+    )
+  ),
+  
+  
   fluidRow(
     downloadButton('dl_table', 'Download Selected Table'),
     downloadButton('dl_volcano', 'Download Volcano Plot')
@@ -58,5 +73,5 @@ shinyUI(fluidPage(
   #,
   #uiOutput('select_gene_list')
 )
-
 )
+

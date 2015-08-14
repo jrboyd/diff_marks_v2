@@ -49,7 +49,7 @@ plot_details = function(disp_data, list_up, list_dn, sel, lines2plot, marks2plot
     plot0();text(.5,.5, 'log gene expression')
     plot0()
     legend('center', legend = colnames(my_rna), fill = RColorBrewer::brewer.pal(ncol(my_rna), 'Set1'), horiz = T, bty = 'n')
-    if(doSidePlot) legend('top', legend = to_plot, fill = RColorBrewer::brewer.pal(length(to_plot), 'Dark2'), horiz = T, bty = 'n')
+    if(doSidePlot) legend('top', legend = to_plot, fill = RColorBrewer::brewer.pal(8, 'Dark2')[1:length(to_plot)], horiz = T, bty = 'n')
     plot0();text(.5,.5, 'cluster size')
   }else if(plot_type == detail_plot_types[4]){#heatmap of all cell lines and mods
     if(length(sel) == 1){

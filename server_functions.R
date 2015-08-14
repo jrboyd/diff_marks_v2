@@ -39,16 +39,30 @@ plot_details = function(disp_data, list_up, list_dn, sel, lines2plot, marks2plot
     lmat_custom[nr-1,nc-1] = 2
     lmat_custom[nr,-2:-1+nc] = 3
     lmat_custom[1,nc] = 4
-    hmap_res = heatmap.ngsplots(sel_prof, nclust = nclust, cex.col = 3.3, doSidePlot = doSidePlot, labelWithCounts = T, extraData = my_rna, lmat_custom = lmat_custom,cex.row = 2.5, labels_right = character(),
-                                detail_desc, profiles_to_plot = to_plot, 
-                                forPDF = F, globalScale = .6, 
+    rna_toplot = paste(lines2plot, '_rna', sep = '')
+    line2i = 1:3
+    names(line2i) = cell_lines
+    ed_colors = RColorBrewer::brewer.pal(8, 'Set1')[line2i[lines2plot]]
+    hmap_res = heatmap.ngsplots(sel_prof, 
+                                nclust = nclust, 
+                                cex.col = 6, 
+                                doSidePlot = doSidePlot, 
+                                labelWithCounts = T, 
+                                extraData = my_rna[,rna_toplot, drop = F], 
+                                extraData_colors = ed_colors,
+                                lmat_custom = lmat_custom,cex.row = 2, 
+                                labels_right = character(),
+                                detail_desc, 
+                                profiles_to_plot = to_plot, 
+                                forPDF = F, globalScale = 1.2, 
                                 labels_below = rep(lines2plot, length(marks2plot)), 
                                 labels_above = marks2plot)
     
     plot0();text(.5,.5, 'average profile')
     plot0();text(.5,.5, 'log gene expression')
     plot0()
-    legend('center', legend = colnames(my_rna), fill = RColorBrewer::brewer.pal(ncol(my_rna), 'Set1'), horiz = T, bty = 'n')
+    
+    legend('center', legend = colnames(my_rna)[line2i[lines2plot]], fill = ed_colors, horiz = T, bty = 'n')
     if(doSidePlot) legend('top', legend = to_plot, fill = RColorBrewer::brewer.pal(8, 'Dark2')[1:length(to_plot)], horiz = T, bty = 'n')
     plot0();text(.5,.5, 'cluster size')
   }else if(plot_type == detail_plot_types[4]){#heatmap of all cell lines and mods
@@ -187,6 +201,10 @@ get_sel_table = function(sel, hmap_res ){
 #based on brush, points in scatterplot are selected and returned as list of rownames from data table
 get_selected = function(x, y, list_up, list_dn, filter, v){
   new_selection = character()
+  x_plot = y - x
+  y_plot = apply(cbind(x,y), 1, min)
+  x = x_plot
+  y = y_plot
   if(!is.null(v$brush)){
     keep = (x > v$brush$xmin & x < v$brush$xmax) &
       (y > v$brush$ymin & y < v$brush$ymax)

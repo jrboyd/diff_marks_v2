@@ -48,6 +48,7 @@ heatmap.ngsplots = function(ngs_profiles,
                             cex.col = 2,
                             doSidePlot = T,
                             extraData = NULL,
+                            extraData_colors = NULL,
                             forPDF = T,
                             globalScale = 1){
   if(length(profiles_to_plot) == 1 && is.na(profiles_to_plot)){
@@ -315,7 +316,7 @@ heatmap.ngsplots = function(ngs_profiles,
                        labels_rowsep = args$labels_rowsep,
                        main = args$main,
                        cex.main = args$cex.main,
-                       doSidePlot = doSidePlot, extraData = extraData,lmat_custom = lmat_custom)
+                       doSidePlot = doSidePlot, extraData = extraData,lmat_custom = lmat_custom, extraData_colors = extraData_colors)
   cluster_members = sapply(1:kmclust$nclust, function(x){
     return(rownames(kmclust$data)[kmclust$cluster == x])
   }) 
@@ -368,7 +369,7 @@ heatmap.replot_ngsplots = function(ngs_profiles, hmap_res, labels_above, labels_
                        labels_rowsep = args$labels_rowsep, 
                        main = args$main,
                        cex.main = args$cex.main,
-                       doSidePlot = doSidePlot, extraData = extraData, lmat_custom = lmat_custom)
+                       doSidePlot = doSidePlot, extraData = extraData, lmat_custom = lmat_custom, extraData_colors = extraData_colors)
 }
 
 #dev.off()
@@ -416,7 +417,8 @@ heatmap.2.2 = function (x,
                         
                         #side plot of summary
                         doSidePlot = T,
-                        extraData = NULL) 
+                        extraData = NULL,
+                        extraData_colors = NULL) 
 {
   x.original = x
   rowsep.minor = -1
@@ -449,8 +451,8 @@ heatmap.2.2 = function (x,
   
   label.height = .5
   main.height = .8
-  extraDataSize = 1.5
-  sidePlotSize = 4.5
+  extraDataSize = 1
+  sidePlotSize = 2
   
   add_lmat_left = function(added_width){
     lmat <<- cbind(rep(0, nrow(lmat)), lmat)
@@ -671,7 +673,7 @@ heatmap.2.2 = function (x,
   if(!is.null(main)){
     plot.new()
     par(xpd = NA)
-    text(.5,.5, main, cex = cex.main * globalScale)
+    text(0,1, main, cex = cex.main * globalScale, adj = c(0,1))
   }
   
   #draws column labels below column
@@ -838,7 +840,7 @@ heatmap.2.2 = function (x,
     par(mai = rep(0, 4), xpd = T)
     YMIN = 0
     YMAX = 20
-    colorClasses = RColorBrewer::brewer.pal(n = ncol(extraData), name = 'Set1')
+    colorClasses = extraData_colors
     for(i in 1:nclust){
       #       plot0()
       #       box()

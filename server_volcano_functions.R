@@ -1,14 +1,16 @@
 
 # plot style functions
-ref_line = function(MIN, MAX) lines(c(MIN, MAX), c(MIN, MAX), col = rgb(0, 0, 1, 1), lty = 3, lwd = 6)
+ref_line = function(MIN, MAX) lines(c(0, 0), c(MIN, MAX), col = rgb(0, 0, 1, 1), lty = 3, lwd = 6)
 
 custom_plot = function(x, y, col, txt, ...) {
-    plot(x = x, y = y, col = col, pch = 16, ...)
+    x_plot = y - x
+    y_plot = apply(cbind(x, y), 1, min)
+    plot(x = x_plot, y = y_plot, col = col, pch = 16, ...)
     MIN = par("usr")[1]
     MAX = par("usr")[2]
     box()
     par(family = "mono")
-    text(MIN + (MAX - MIN) * 0.02, MAX - (MAX - MIN) * 0.01, txt, adj = c(0, 1))
+    text(MIN + (MAX - MIN) * 0.02, MAX - (MAX - MIN) * 0.05, txt, adj = c(0, 1))
     ref_line(MIN, MAX)
     par(family = "")
 }

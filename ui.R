@@ -53,7 +53,8 @@ shinyUI(fluidPage(
     downloadButton('dl_table', 'Download Selected Table'),
     downloadButton('dl_volcano', 'Download Volcano Plot')
   ),
-  tableOutput('selTable')
+  tableOutput('selTable'),
+  tableOutput('goTable')
   #,
   #uiOutput('select_gene_list')
 )

@@ -32,7 +32,7 @@ plot_details = function(disp_data, list_up, list_dn, sel, lines2plot, marks2plot
     doSidePlot = min(c(length(marks2plot), length(lines2plot))) == 1
     nclust = min(6, length(sel)-1)
     nr = 4 + nclust
-    nc = 6
+    nc = 7
     if(doSidePlot) nc = nc + 2
     lmat_custom = matrix(0, ncol = nc, nrow = nr)
     lmat_custom[nr-1,nc-2] = 1
@@ -47,7 +47,9 @@ plot_details = function(disp_data, list_up, list_dn, sel, lines2plot, marks2plot
     
     plot0();text(.5,.5, 'average profile')
     plot0();text(.5,.5, 'log gene expression')
-    plot0();legend('center', legend = c('MCF10A', 'MCF7', 'MDA231'), fill = RColorBrewer::brewer.pal(3, 'Set1'), horiz = T, bty = 'n')
+    plot0()
+    legend('center', legend = colnames(my_rna), fill = RColorBrewer::brewer.pal(ncol(my_rna), 'Set1'), horiz = T, bty = 'n')
+    if(doSidePlot) legend('top', legend = to_plot, fill = RColorBrewer::brewer.pal(length(to_plot), 'Dark2'), horiz = T, bty = 'n')
     plot0();text(.5,.5, 'cluster size')
   }else if(plot_type == detail_plot_types[4]){#heatmap of all cell lines and mods
     if(length(sel) == 1){

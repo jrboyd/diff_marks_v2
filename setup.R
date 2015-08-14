@@ -3,6 +3,7 @@ if(!exists('loaded')){
   library("xtable")
   library("RColorBrewer")
   library("xlsx")
+  library("gage")
   source("scripts//heatmap.3-split.R")
   source("scripts/heatmap.ngsplots_kmeans_with_sideplot.R")
   source("scripts/heatmap.res_lists.R")
@@ -26,7 +27,7 @@ if(!exists('loaded')){
   #colnames(my_fe) = gsub('_', ' ', colnames(my_fe))
   
   my_rna = log2(rna_norm_matched + 4)
-  colnames(my_rna) = sub('_rna', '', colnames(my_rna))
+  #colnames(my_rna) = sub('_rna', '', colnames(my_rna))
   
   ngs_profiles = lapply(promoter_wide_matched_prof,  function(x){
     MIN = quantile(x, .1)

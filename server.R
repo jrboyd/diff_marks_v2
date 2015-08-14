@@ -115,7 +115,8 @@ shinyServer(function(input, output, session) {
     try({
       name_a = colnames(disp_data)[1]
       name_b = colnames(disp_data)[2]
-      
+#       print('name')
+#       print(name_a)
       scale = rep(1, nrow(disp_data)) #max(disp_data)
       names(scale) = rownames(disp_data)
       colors = rep(rgb(0,0,0,input$bg_opacity), nrow(disp_data))
@@ -457,15 +458,26 @@ shinyServer(function(input, output, session) {
     return(selectInput(inputId = 'y_col_name', label = 'Select Y value ', choices = choices, selected = choices[7]))
   })
   
+  output$goTable = renderTable({
+    if(!v$volcano_ready){
+      return(xtable(data.frame('waiting on volcano plot...')))
+    }
+    if(debug) print("goTable")
+    sel = react_get_selected()
+    writeClipboard((sel))
+    if(length(sel) < 1){
+      return(xtable(as.data.frame('no data selected')))
+    }
+    out_table = xtable(as.data.frame(get_sel_table(sel, v$hmap_res)))
+    return(out_table)
+  }, sanitize.text.function = force)   
+  
   output$selTable = renderTable({
     if(!v$volcano_ready){
       return(xtable(data.frame('waiting on volcano plot...')))
     }
-    if(debug) print("renderTable")
-    disp_data = react_get_displayed_data()
+    if(debug) print("selTable")
     sel = react_get_selected()
-    sel = intersect(rownames(disp_data), sel)
-    
     if(length(sel) < 1){
       return(xtable(as.data.frame('no data selected')))
     }

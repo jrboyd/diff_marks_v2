@@ -214,7 +214,7 @@ heatmap.ngsplots = function(ngs_profiles,
     }
   }
   
-  rColorChoices = RColorBrewer::brewer.pal(nclust, 'Dark2')#set cluster id colors
+  rColorChoices = RColorBrewer::brewer.pal(nclust, 'Pastel2')#set cluster id colors
   if(length(fg_toPlot) > 0){#correct for special selection color
     rColorChoices = c('white', rColorChoices[2:length(rColorChoices)-1])
   }
@@ -437,18 +437,20 @@ heatmap.2.2 = function (x,
   dev.width = par('din')[1]
   dev.height = par('din')[2]
   nclust = length(clust$size)
-  lmat = matrix(rep(1, nclust), ncol = 1)
+  
   body_height = dev.height
   body_width = dev.width
   body_iy = 1:nclust
-  body_ix = 1
-  lwid = dev.width
+  body_ix = 1:2
+  lmat = matrix(rep(1, nclust), ncol = length(body_ix), nrow = nclust)
+  key_width = min(4,dev.width/3)
+  lwid = c(key_width, body_width - key_width)
   lhei = rep(body_height /nclust, nclust)
   
   add_lmat_left = function(added_width){
     lmat <<- cbind(rep(0, nrow(lmat)), lmat)
     added_width = added_width * globalScale
-    lwid[body_ix] <<- lwid[body_ix] - added_width
+    lwid[max(body_ix)] <<- lwid[max(body_ix)] - added_width
     lwid <<- c(added_width, lwid)
     body_ix <<- body_ix + 1
   }
@@ -459,7 +461,7 @@ heatmap.2.2 = function (x,
       lmat <<- lmat <- cbind(lmat, c(rep(0, min(body_iy)-1), (max(lmat)+1):(max(lmat) + nclust), rep(0, nrow(lmat)-max(body_iy))))
     }
     added_width = added_width * globalScale
-    lwid[body_ix] <<- lwid[body_ix] - added_width
+    lwid[max(body_ix)] <<- lwid[max(body_ix)] - added_width
     lwid <<- c(lwid, added_width)
   }
   
@@ -470,8 +472,15 @@ heatmap.2.2 = function (x,
     lhei <<- c(added_height, lhei)
     body_iy <<- body_iy + 1
   }
-  add_lmat_bottom = function(added_height){
-    lmat <<- rbind(lmat, max(lmat) + 1)
+  add_lmat_bottom = function(added_height, body_xpos = -1){
+    if(body_xpos > 0){
+      new_row = rep(0, ncol(lmat))
+      new_row[body_ix[body_xpos]] =  max(lmat) + 1
+      lmat <<- rbind(lmat, new_row)
+    }else{
+      lmat <<- rbind(lmat, max(lmat) + 1)
+    }
+    
     added_height = added_height * globalScale
     lhei[body_iy] <<- lhei[body_iy] - added_height / nclust
     lhei <<- c(lhei, added_height)
@@ -491,7 +500,7 @@ heatmap.2.2 = function (x,
     add_lmat_bottom(label.height)
   }
   if(key){
-    add_lmat_bottom(key.height)
+    add_lmat_bottom(key.height, body_xpos = 1)
   }
   
   RowSideColors_size = 1
@@ -799,7 +808,7 @@ heatmap.2.2 = function (x,
     nsplits = length(colsep.minor)+1
     win = ncol(avgA) / nsplits
     #     print(avgA)
-    colorClasses = RColorBrewer::brewer.pal(max(nsplits,3), 'Set1')
+    colorClasses = RColorBrewer::brewer.pal(max(nsplits,3), 'Dark2')
     colorClasses = colorClasses[1:nsplits]#stupid colorbrewer min classes warning workaround
     for (i in 1:nclust) { 
       xrange <- as.numeric(range(1:(ncol(avgA)/nsplits)))
@@ -830,6 +839,7 @@ heatmap.2.2 = function (x,
     par(mai = rep(0, 4), xpd = T)
     YMIN = 0
     YMAX = 20
+    colorClasses = RColorBrewer::brewer.pal(n = ncol(extraData), name = 'Set1')
     for(i in 1:nclust){
       #       plot0()
       #       box()

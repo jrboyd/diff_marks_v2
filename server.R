@@ -482,7 +482,7 @@ shinyServer(function(input, output, session) {
     }
     out_table = xtable(as.data.frame(get_sel_table(sel, v$hmap_res)))
     return(out_table)
-  }, sanitize.t /.ext.function = force)   
+  }, sanitize.text.function = force)   
   
   
   output$selTable = renderTable({

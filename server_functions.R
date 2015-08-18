@@ -32,8 +32,8 @@ plot_details = function(disp_data, list_up, list_dn, sel, lines2plot, marks2plot
     doSidePlot = min(c(length(marks2plot), length(lines2plot))) == 1
     nclust = min(6, length(sel)-1)
     nr = 4 + nclust
-    nc = 7
-    if(doSidePlot) nc = nc + 2
+    nc = 8
+    if(doSidePlot) nc = nc + 1
     lmat_custom = matrix(0, ncol = nc, nrow = nr)
     lmat_custom[nr-1,nc-2] = 1
     lmat_custom[nr-1,nc-1] = 2
@@ -56,7 +56,8 @@ plot_details = function(disp_data, list_up, list_dn, sel, lines2plot, marks2plot
                                 profiles_to_plot = to_plot, 
                                 forPDF = F, globalScale = 1.2, 
                                 labels_below = rep(lines2plot, length(marks2plot)), 
-                                labels_above = marks2plot)
+                                labels_above = marks2plot,
+                                sidePlot_smoothing = smoothing_window)
     
     plot0();text(.5,.5, 'average profile')
     plot0();text(.5,.5, 'log gene expression')

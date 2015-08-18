@@ -7,6 +7,7 @@ if(!exists('loaded')){
   source("scripts//heatmap.3-split.R")
   source("scripts/heatmap.ngsplots_kmeans_with_sideplot.R")
   source("scripts/heatmap.res_lists.R")
+  source("scripts/functions_movingAverage.R")
   
   pre_calc_dir = 'data/precalc_results/'
   if(!dir.exists(pre_calc_dir)){
@@ -40,7 +41,7 @@ if(!exists('loaded')){
     return(x)
   })
   
-  debug = T
+  debug = F
   xy_type_choices = c("ChIPseq", 'RNAseq')
   display_filter_choices = c("Background", "Up", "Down")
   selection_filter_choices = c("Up or Down", "Up", "Down", "Unchanged", 'No Filter')

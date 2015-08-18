@@ -52,6 +52,7 @@ shinyServer(function(input, output, session) {
   
   output$detail_lines = renderUI({
     if(debug) print("detail_lines")
+    react_xy_dat()
     default = character()
     if(v$detail_ready){
       default = union(react_line_x(), react_line_y())
@@ -290,6 +291,9 @@ shinyServer(function(input, output, session) {
     if(length(sel_methods) > 0 && sel_methods == marks_mismatch_message){
       sel_methods = selection_method_choices[1]
     }
+    if(is.null(sel_methods)){
+      sel_methods = selection_method_choices[1]
+    }
     out_list = process_lists(direction, sel_methods)
     out_list = intersect(out_list, react_get_detectable())
     return(out_list)
@@ -300,6 +304,9 @@ shinyServer(function(input, output, session) {
     direction = 'down'
     sel_methods = input$available_methods
     if(length(sel_methods) > 0 && sel_methods == marks_mismatch_message){
+      sel_methods = selection_method_choices[1]
+    }
+    if(is.null(sel_methods)){
       sel_methods = selection_method_choices[1]
     }
     out_list = process_lists(direction, sel_methods)
@@ -519,19 +526,32 @@ shinyServer(function(input, output, session) {
   )
   
   ###volcano plot download
-  dl_volcname = reactive({
+  dl_detail_name = reactive({
     fname = dl_name()
-    fname = paste('volcano_',fname, '.pdf', sep = '')
+    fname = paste('detail_',fname, '.pdf', sep = '')
   })
-  content_volc = function(file){
-    pdf(file)
-    plot0()
-    text(.5,.5,'empty plot')
+  content_detail = function(file){
+    pdf(file, width = input$detail_width*100/50, height = 650/50)
+    disp_data = my_fe
+    list_up = react_list_up()
+    list_up = intersect(rownames(disp_data), list_up)
+    list_dn = react_list_dn()
+    list_dn = intersect(rownames(disp_data), list_dn)
+    sel = react_get_selected()
+    sel = intersect(rownames(disp_data), sel)
+    
+    lines2plot = input$detail_lines
+    marks2plot = input$detail_marks
+    plot_type = input$detail_type
+    smoothing_window = input$smoothing_window
+    
+    
+    hmap_res = plot_details(disp_data, list_up, list_dn, sel, lines2plot, marks2plot, plot_type, smoothing_window)
     dev.off()
   }
-  output$dl_volcano = downloadHandler(
-    filename = dl_volcname,
-    content = content_volc
+  output$dl_detail = downloadHandler(
+    filename = dl_detail_name,
+    content = content_detail
   )
   
 })

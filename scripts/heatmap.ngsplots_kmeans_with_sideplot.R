@@ -1,4 +1,3 @@
-#plots K27me3 and K4me3 combinations of heatmaps
 #clustering is kmeans then sorted within clusters
 
 
@@ -9,6 +8,7 @@ library('png')
 library('reshape')
 library('ggplot2')
 library('gplots')
+
 
 
 
@@ -47,6 +47,7 @@ heatmap.ngsplots = function(ngs_profiles,
                             cex.row = 1.3,
                             cex.col = 2,
                             doSidePlot = T,
+                            sidePlot_smoothing = 1,
                             extraData = NULL,
                             extraData_colors = NULL,
                             forPDF = T,
@@ -316,7 +317,11 @@ heatmap.ngsplots = function(ngs_profiles,
                        labels_rowsep = args$labels_rowsep,
                        main = args$main,
                        cex.main = args$cex.main,
-                       doSidePlot = doSidePlot, extraData = extraData,lmat_custom = lmat_custom, extraData_colors = extraData_colors)
+                       doSidePlot = doSidePlot, 
+                       sidePlot_smoothing = sidePlot_smoothing,
+                       extraData = extraData,
+                       lmat_custom = lmat_custom, 
+                       extraData_colors = extraData_colors)
   cluster_members = sapply(1:kmclust$nclust, function(x){
     return(rownames(kmclust$data)[kmclust$cluster == x])
   }) 
@@ -369,7 +374,7 @@ heatmap.replot_ngsplots = function(ngs_profiles, hmap_res, labels_above, labels_
                        labels_rowsep = args$labels_rowsep, 
                        main = args$main,
                        cex.main = args$cex.main,
-                       doSidePlot = doSidePlot, extraData = extraData, lmat_custom = lmat_custom, extraData_colors = extraData_colors)
+                       doSidePlot = doSidePlot, sidePlot_smoothing = sidePlot_smoothing, extraData = extraData, lmat_custom = lmat_custom, extraData_colors = extraData_colors)
 }
 
 #dev.off()
@@ -417,6 +422,7 @@ heatmap.2.2 = function (x,
                         
                         #side plot of summary
                         doSidePlot = T,
+                        sidePlot_smoothing = 1,
                         extraData = NULL,
                         extraData_colors = NULL) 
 {
@@ -452,7 +458,8 @@ heatmap.2.2 = function (x,
   label.height = .5
   main.height = .8
   extraDataSize = 1
-  sidePlotSize = 2
+  sidePlotSize = 1
+  labRowSize = 1
   
   add_lmat_left = function(added_width){
     lmat <<- cbind(rep(0, nrow(lmat)), lmat)
@@ -487,14 +494,10 @@ heatmap.2.2 = function (x,
     }else{
       lmat <<- rbind(lmat, max(lmat) + 1)
     }
-    
     added_height = added_height * globalScale
     lhei[body_iy] <<- lhei[body_iy] - added_height / nclust
     lhei <<- c(lhei, added_height)
   }
-  
-  
-
   if(!is.null(labels.above)){
     add_lmat_top(label.height)
   }
@@ -513,18 +516,16 @@ heatmap.2.2 = function (x,
       stop("'RowSideColors' must be a character vector of length nrow(x)")
     add_lmat_right(RowSideColors_size, solid = T)
   }
-  if(doSidePlot){
+  if(doSidePlot | !is.null(extraData)){
     add_lmat_right(1, solid = T)
-    add_lmat_right(sidePlotSize-1, solid = F)
-    #     lmat <- lmat <- cbind(lmat, c(rep(0, min(body_iy)-1), rep(max(lmat)+1, nclust), rep(0, nrow(lmat)-max(body_iy))))
-    #     lmat <- lmat <- cbind(lmat, c(rep(0, min(body_iy)-1), (max(lmat)+1):(max(lmat) + nclust), rep(0, nrow(lmat)-max(body_iy))))
-    #     lwid[body_ix] = lwid[body_ix] - sidePlotSize
-    #    lwid <- c(lwid, .3*sidePlotSize, .7*sidePlotSize)
+  }
+  if(doSidePlot){
+    add_lmat_right(sidePlotSize, solid = F)
   }
   if(!is.null(extraData)){
     add_lmat_right(extraDataSize, solid = F)
   }
-  labRowSize = 1
+  
   if (!is.null(labels_rowsep)) {
     add_lmat_right(labRowSize, solid = T)
   }
@@ -537,8 +538,8 @@ heatmap.2.2 = function (x,
   }
   
   
-#   print(lmat)
-#   print(lmat_custom)
+  #   print(lmat)
+  #   print(lmat_custom)
   if(!is.null(lmat_custom)){
     if(class(lmat_custom) != 'matrix'){
       stop('class of lmat_custom must be matrix')
@@ -552,9 +553,9 @@ heatmap.2.2 = function (x,
     lmat_custom = ifelse(lmat_custom > 0, lmat_custom + max(lmat), 0)
     lmat = lmat + lmat_custom
   }
-#   print(lmat)
-#   print(lhei)
-#   print(lwid)
+  #   print(lmat)
+  #   print(lhei)
+  #   print(lwid)
   nf = layout(lmat, heights = lhei, widths = lwid)
   
   #layout.show(nf)
@@ -758,20 +759,13 @@ heatmap.2.2 = function (x,
       center = mean(as.numeric(names(keep[keep])))
       if(forPDF) center = center / nr #stupid bandaid correction for start/stopRaster model
       rowLab = rev(RowSideLabels)[i]
-      text(.5,center, rowLab, adj = c(.5,.5), cex = cexRow * globalScale)
+      text(.5,center-.5, rowLab, adj = c(.5,.5), cex = cexRow * globalScale)
       
     }
     #par(xpd = NA)
     
   }
-  if(doSidePlot){
-    avgA = matrix(0,nclust, ncol(clust$centers))
-    for(i in 1:nrow(avgA)){
-      avgA[i,] = clust$centers[i,]
-    }
-    
-    #need to reverse order
-    #o=o[nclust:1,]
+  if(doSidePlot | !is.null(extraData)){
     par(mai=rep(0,4))
     plot0()
     #     (x=c(0,1),frame.plot=FALSE, y=c(0,1), xaxt='n',yaxt='n', type="n", xlab="",
@@ -802,11 +796,21 @@ heatmap.2.2 = function (x,
       
       lines(c(min + meet_in_middle * rng, max), c(rng*hFrac_mean,rng*lplotFrac),lty=2)
     }
+  }
+  if(doSidePlot){
+    avgA = matrix(0,nclust, ncol(clust$centers))
+    for(i in 1:nrow(avgA)){
+      avgA[i,] = clust$centers[i,]
+    }
     
     par(mar = c(0,0, 0,0.5))
     
     #draw line chart represented each class from clustering
-    nsplits = length(colsep.minor)+1
+    nsplits = 1
+    if(colsep.minor[1] > -1){
+      nsplits = length(colsep.minor)+1
+    }
+    if(colsep.minor)
     win = ncol(avgA) / nsplits
     #     print(avgA)
     colorClasses = RColorBrewer::brewer.pal(max(nsplits,3), 'Dark2')
@@ -826,11 +830,17 @@ heatmap.2.2 = function (x,
       
       #   axis(side=1,tick=TRUE,at=days)
       vals <- avgA[i,]
+      
       for(s in 1:nsplits){
         start = (s - 1) * win + 1
         end = s * win
         xs = 1:(ncol(avgA)/nsplits)#first half of profile
-        lines(xs, vals[start:end], type="l", lwd=2.5,
+        
+        line_dat = vals[start:end]
+        if(sidePlot_smoothing > 1){
+          line_dat = movingAverage(line_dat, n = sidePlot_smoothing)
+        }
+        lines(xs, line_dat, type="l", lwd=2.5,
               lty=1, col=colorClasses[s], pch=16) 
       }
       lines(rep(mean(xrange),2), yrange, lty = 3)
@@ -856,7 +866,7 @@ heatmap.2.2 = function (x,
       low = M - E
       mid = M
       high = M + E
-#       print(rbind(low, mid, high))
+      #       print(rbind(low, mid, high))
       if(any(is.na(low))) low = mid
       if(any(is.na(high))) high = mid
       
@@ -875,7 +885,7 @@ heatmap.2.2 = function (x,
     par(mai = rep(0,4))
     plot0(height = nr)
     for(i in 1:length(labels_rowsep)){
-      if(!doSidePlot){
+      if(!doSidePlot && is.null(extraData)){
         rsep_prev = 1
         if(i > 1){
           rsep_prev = rowsep.major[i - 1] + sepwidth.major

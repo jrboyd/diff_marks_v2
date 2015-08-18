@@ -48,6 +48,56 @@ if(!exists('loaded')){
   selection_method_choices = c("Fold Change", "MAnorm", "MACS2 bdgdiff")
   detail_plot_types = c("None", "ngsplots - profiles", "ngsplots - heatmap", "FE heatmap")
   deseq_groups = c('none', 'MCF10A vs MCF7', 'MCF10A vs MDA231', 'MCF7 vs MDA231')
+  exDat_choices = c("Lines", "Heatmaps", "Barplots")
+  as_FC = F
+  exDat_linePlot = function(dat, ylim){
+    xs = 1:ncol(dat)
+    if(as_FC){
+      dat = dat - dat[,1]
+      ylim = c(-5,5)
+      dat = ifelse(dat < -5, -5, dat)
+      dat = ifelse(dat > 5, 5, dat)
+    }
+    plot(0, type = 'n', axes = F, xlim = c(.8,ncol(dat) + .2), ylim = ylim)
+    hidden = apply(dat, 1, function(x){
+      lines(xs, x, col = 'gray')
+    })
+    
+    lines(xs, apply(dat, 2, median), col = "#f62626", lwd = 3)
+    
+  }
+  exDat_hmap = function(dat, ylim){
+    par(mai = rep(.1,4))
+    cr = colorRamp(c('green', 'red'))
+    colors = rgb(cr(0:100/100)/255)
+    nclust = min(4, nrow(dat)-1)
+    
+    if(as_FC){
+      dat = dat - dat[,1]
+      ylim = c(-5,5)
+    }
+    if(nclust > 3){
+      kclust = kmeans(dat - dat[,1], centers = nclust)
+      o = order(kclust$cluster)
+      dat = dat[o,, drop = F]
+      kclust$cluster = kclust$cluster[o]
+      for(i in 1:nclust){
+        keep = kclust$cluster == i
+        o = order(rowSums(dat[keep,, drop = F]), decreasing = F)
+        dat[keep,] = dat[keep,, drop = F][o,, drop = F]
+      }
+    }
+#     sub_hclust = hclust(dist(dat - dat[,1]))
+#     dat = dat[sub_hclust$order,]
+    breaks = (-1:100 + .5)/100 * (ylim[2] - ylim[1]) + ylim[1]
+    breaks[1] = -1000000
+    breaks[length(breaks)] = 10000000
+    image(0:3, 0:nrow(dat), t(dat), xlim = c(0, 3), ylim = c(0, nrow(dat)), axes = FALSE, xlab = "", ylab = "", col = colors, breaks = breaks)
+  }
+  exDat_default = NA
+  exDat_functions = c(exDat_linePlot, exDat_hmap, exDat_default)
+  names(exDat_functions) = exDat_choices
+  
   
   column_choices = colnames(my_fe)
   lines = sapply(strsplit(column_choices, '_'), function(x)return(x[1]))

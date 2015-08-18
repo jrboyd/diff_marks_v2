@@ -50,6 +50,7 @@ heatmap.ngsplots = function(ngs_profiles,
                             sidePlot_smoothing = 1,
                             extraData = NULL,
                             extraData_colors = NULL,
+                            extraData_plotFunction = NA,
                             forPDF = T,
                             globalScale = 1){
   if(length(profiles_to_plot) == 1 && is.na(profiles_to_plot)){
@@ -320,6 +321,7 @@ heatmap.ngsplots = function(ngs_profiles,
                        doSidePlot = doSidePlot, 
                        sidePlot_smoothing = sidePlot_smoothing,
                        extraData = extraData,
+                       extraData_plotFunction = extraData_plotFunction,
                        lmat_custom = lmat_custom, 
                        extraData_colors = extraData_colors)
   cluster_members = sapply(1:kmclust$nclust, function(x){
@@ -374,6 +376,7 @@ heatmap.replot_ngsplots = function(ngs_profiles, hmap_res, labels_above, labels_
                        labels_rowsep = args$labels_rowsep, 
                        main = args$main,
                        cex.main = args$cex.main,
+                       extraData_plotFunction = extraData_plotFunction,
                        doSidePlot = doSidePlot, sidePlot_smoothing = sidePlot_smoothing, extraData = extraData, lmat_custom = lmat_custom, extraData_colors = extraData_colors)
 }
 
@@ -424,7 +427,8 @@ heatmap.2.2 = function (x,
                         doSidePlot = T,
                         sidePlot_smoothing = 1,
                         extraData = NULL,
-                        extraData_colors = NULL) 
+                        extraData_colors = NULL,
+                        extraData_plotFunction = NA) 
 {
   x.original = x
   rowsep.minor = -1
@@ -811,7 +815,7 @@ heatmap.2.2 = function (x,
       nsplits = length(colsep.minor)+1
     }
     if(colsep.minor)
-    win = ncol(avgA) / nsplits
+      win = ncol(avgA) / nsplits
     #     print(avgA)
     colorClasses = RColorBrewer::brewer.pal(max(nsplits,3), 'Dark2')
     colorClasses = colorClasses[1:nsplits]#stupid colorbrewer min classes warning workaround
@@ -857,27 +861,47 @@ heatmap.2.2 = function (x,
       subset = rownames(clust$data)[clust$cluster == i]
       dat = extraData[subset,, drop = F]# + 64
       colnames(dat) = NULL
-      M = colMeans(dat)
-      n = nrow(dat)
-      s = apply(dat, 2, sd)
-      SE = s / sqrt(n)
-      E = 0
-      if(n > 1) E = qt(.975, df=n - 1) * SE
-      low = M - E
-      mid = M
-      high = M + E
-      #       print(rbind(low, mid, high))
-      if(any(is.na(low))) low = mid
-      if(any(is.na(high))) high = mid
-      
-      low = ifelse(low <= 0, 1, low)
-      barplot2(mid, ci.l = low, ci.u = high, col = colorClasses, plot.ci = T, ylim = c(YMIN,YMAX), axes = F, space = 0, bty = 'o')
-      for(pos in c(4,8,12,16)){
-        lines(c(0,nclust+1), c(pos,pos), lty = 2) 
+      # extraData_asLines = T
+      # extraData_asHmap = T
+      if(is.function(extraData_plotFunction)){
+        extraData_plotFunction(dat, c(YMIN,YMAX))
+#         par(mai = rep(.1,4))
+#         cr = colorRamp(c('green', 'red'))
+#         colors = rgb(cr(0:100/100)/255)
+#         sub_hclust = hclust(dist(dat))
+#         dat = dat[sub_hclust$order,]
+#         image(0:3, 0:nrow(dat), t(dat), xlim = c(0, 3), ylim = c(0, nrow(dat)), axes = FALSE, xlab = "", ylab = "", col = colors)
+#       }else if(extraData_asLines){
+#         xs = 1:ncol(dat)
+#         plot(0, type = 'n', axes = F, xlim = c(.8,ncol(dat) + .2), ylim = c(0, max(dat)))
+#         hidden = apply(dat, 1, function(x){
+#           lines(xs, x, col = 'gray')
+#         })
+#         
+#         lines(xs, apply(dat, 2, median), col = "#f62626", lwd = 3)
+      }else{
+        M = colMeans(dat)
+        n = nrow(dat)
+        s = apply(dat, 2, sd)
+        SE = s / sqrt(n)
+        E = 0
+        if(n > 1) E = qt(.975, df=n - 1) * SE
+        low = M - E
+        mid = M
+        high = M + E
+        #       print(rbind(low, mid, high))
+        if(any(is.na(low))) low = mid
+        if(any(is.na(high))) high = mid
+        
+        low = ifelse(low <= 0, 1, low)
+        barplot2(mid, ci.l = low, ci.u = high, col = colorClasses, plot.ci = T, ylim = c(YMIN,YMAX), axes = F, space = 0, bty = 'o')
+        for(pos in c(4,8,12,16)){
+          lines(c(0,nclust+1), c(pos,pos), lty = 2) 
+        }
+        
+        #axis(side = 2, at = c(250,500,1000,2000))
+        box()
       }
-      
-      #axis(side = 2, at = c(250,500,1000,2000))
-      box()
     }
   }
   par(xpd = NA)

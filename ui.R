@@ -13,7 +13,7 @@ shinyUI(
                                uiOutput(outputId = 'x_select'),
                                uiOutput(outputId = 'y_select'),
                                
-                               radioButtons(inputId = 'detail_type', label = 'Detail Plot Type', choices = detail_plot_types, selected = detail_plot_types[4]),
+                               radioButtons(inputId = 'detail_type', label = 'Detail Plot Type', choices = detail_plot_types, selected = detail_plot_types[3]),
                                uiOutput(outputId = 'detail_lines'),
                                uiOutput(outputId = 'detail_marks')
                                
@@ -35,6 +35,7 @@ shinyUI(
                                sliderInput(inputId = 'bg_opacity', label = 'Background Opacity', min = 0.05, max = 1, step = .05, value = .15),
                                sliderInput(inputId = 'fg_opacity', label = 'Up/down Opacity', min = 0.05, max = 1, step = .05, value = .8),
                                sliderInput('detail_width', label = 'Detail Plot Width', min = 6.5, max = 16, value = 8, step = .5),
+                               radioButtons('cluster_plot_type', label = 'Cluster Plot Type', choices = exDat_choices, exDat_choices[1]),
                                sliderInput('smoothing_window', label = 'Smoothing Window', min = 1, max = 20, value = 5, step = 1)
                       )
                     )
@@ -60,7 +61,8 @@ shinyUI(
       #     ),
       #     tableOutput('selTable'),
       #     tableOutput('goTable')
-    )
+    ),
+    tableOutput('selTable')
   )
 )
 

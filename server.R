@@ -100,7 +100,7 @@ shinyServer(function(input, output, session) {
     smoothing_window = input$smoothing_window
     
     
-    hmap_res = plot_details(disp_data, list_up, list_dn, sel, lines2plot, marks2plot, plot_type, smoothing_window)
+    hmap_res = plot_details(disp_data, list_up, list_dn, sel, lines2plot, marks2plot, plot_type, smoothing_window, input$cluster_plot_type)
     if(!is.null(hmap_res)){ v$hmap_res = hmap_res}else{v$hmap_res = NULL}
   })
   
@@ -145,11 +145,12 @@ shinyServer(function(input, output, session) {
         colors = scale_colors(data = disp_data, scale = scale, list_in = sel, bg_color = rgb(0,0,0,input$bg_opacity), list_color = rgb(0,0,1,input$fg_opacity), colors = colors)
       }
       max_str = max(nchar(name_a), nchar(name_b))
-      note = paste0(format(name_a, width = max_str), ' - ', length(list_up), '\n', format(name_b, width = max_str), ' - ', length(list_dn))
+      note = paste0(format(name_a, width = max_str), ' - ', length(list_dn), '\n', format(name_b, width = max_str), ' - ', length(list_up))
       MIN = min(disp_data)
       MAX = max(disp_data)
+      YMAX = max(apply(disp_data, 1, min))
       plot_merge(data = disp_data, list_a = list_up, list_b = list_dn, colors = colors, note = note,
-                 xlab = paste(name_a, 'log2 FE'), ylab = paste(name_b, 'log2 FE'), xlim = c(-MAX, MAX), ylim = c(MIN, MAX), cex = .8)
+                 xlab = paste(name_b, 'log2 -', name_a, 'log2'), ylab = paste('minimum of', name_a, 'and', name_b), xlim = c(-MAX, MAX), ylim = c(MIN, YMAX), cex = .8)
       detect_thresh = input$detect_threshold
       if(detect_thresh > 0){
         lines(c(-MAX, MAX), c(detect_thresh, detect_thresh), col = 'yellow')
@@ -468,13 +469,13 @@ shinyServer(function(input, output, session) {
     }else{
       choices = colnames(my_fe)
     }
-    return(selectInput(inputId = 'x_col_name', label = 'Select X value ', choices = choices, selected = choices[1]))
+    return(selectInput(inputId = 'x_col_name', label = 'Select "From" Value ', choices = choices, selected = choices[1]))
     
   })
   
   output$y_select = renderUI({
     choices = colnames(my_fe)
-    return(selectInput(inputId = 'y_col_name', label = 'Select Y value ', choices = choices, selected = choices[7]))
+    return(selectInput(inputId = 'y_col_name', label = 'Select "To" value ', choices = choices, selected = choices[7]))
   })
   
   output$goTable = renderTable({

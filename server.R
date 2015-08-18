@@ -100,7 +100,7 @@ shinyServer(function(input, output, session) {
     smoothing_window = input$smoothing_window
     
     
-    hmap_res = plot_details(disp_data, list_up, list_dn, sel, lines2plot, marks2plot, plot_type, smoothing_window)
+    hmap_res = plot_details(disp_data, list_up, list_dn, sel, lines2plot, marks2plot, plot_type, smoothing_window, input$cluster_plot_type)
     if(!is.null(hmap_res)){ v$hmap_res = hmap_res}else{v$hmap_res = NULL}
   })
   

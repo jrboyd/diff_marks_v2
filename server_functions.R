@@ -1,6 +1,6 @@
 #contains meatier server code
 
-plot_details = function(disp_data, list_up, list_dn, sel, lines2plot, marks2plot, plot_type, smoothing_window){
+plot_details = function(disp_data, list_up, list_dn, sel, lines2plot, marks2plot, plot_type, smoothing_window, cluster_plot_type){
   hmap_res = NULL
   if(is.null(lines2plot) || is.null(marks2plot)){
     plot0()
@@ -42,14 +42,16 @@ plot_details = function(disp_data, list_up, list_dn, sel, lines2plot, marks2plot
     rna_toplot = paste(lines2plot, '_rna', sep = '')
     line2i = 1:3
     names(line2i) = cell_lines
-    ed_colors = RColorBrewer::brewer.pal(8, 'Set1')[line2i[lines2plot]]
+    ed_colors = RColorBrewer::brewer.pal(8, 'Set1')[line2i]
+    print(cluster_plot_type)
     hmap_res = heatmap.ngsplots(sel_prof, 
                                 nclust = nclust, 
                                 cex.col = 6, 
                                 doSidePlot = doSidePlot, 
                                 labelWithCounts = T, 
-                                extraData = my_rna[,rna_toplot, drop = F], 
+                                extraData = my_rna,#[,rna_toplot, drop = F], 
                                 extraData_colors = ed_colors,
+                                extraData_plotFunction = exDat_functions[[cluster_plot_type]],
                                 lmat_custom = lmat_custom,cex.row = 2, 
                                 labels_right = character(),
                                 detail_desc, 
@@ -59,12 +61,26 @@ plot_details = function(disp_data, list_up, list_dn, sel, lines2plot, marks2plot
                                 labels_above = marks2plot,
                                 sidePlot_smoothing = smoothing_window)
     
-    plot0();text(.5,.5, 'average profile')
-    plot0();text(.5,.5, 'log gene expression')
-    plot0()
+    plot0();text(.5,.2, 'average profile')
+    plot0();
+    if(cluster_plot_type == exDat_choices[3]){
+      text(.5,.7, 'log gene expression')
+    }else{
+      for(i in 1:length(cell_lines)){
+        cl = cell_lines[i]
+        xpos = (i-.5)/length(cell_lines)
+        
+        text(xpos, 1, cl, adj = c(1,.5), srt = 90)
+      }
+    }
     
-    legend('center', legend = colnames(my_rna)[line2i[lines2plot]], fill = ed_colors, horiz = T, bty = 'n')
-    if(doSidePlot) legend('top', legend = to_plot, fill = RColorBrewer::brewer.pal(8, 'Dark2')[1:length(to_plot)], horiz = T, bty = 'n')
+    plot0()
+    if(cluster_plot_type == exDat_choices[3]){
+      legend('bottom', legend = colnames(my_rna)[line2i], fill = ed_colors, horiz = T, bty = 'n')
+    }else if(cluster_plot_type == exDat_choices[1]){
+      text(.75,.8, "red line is median")
+    }
+    if(doSidePlot) legend('center', legend = to_plot, fill = RColorBrewer::brewer.pal(8, 'Dark2')[1:length(to_plot)], horiz = T, bty = 'n')
     plot0();text(.5,.5, 'cluster size')
   }else if(plot_type == detail_plot_types[4]){#heatmap of all cell lines and mods
     if(length(sel) == 1){

@@ -2,11 +2,13 @@ load("ref/ensg_dicts.save")
 if (!exists("my_fe")) load("data//my_fe_corrected.save")
 source("scripts//diffpeaks_vs_manorm_vs_fe_functions.R")
 
+
+
 dir('data/diff_peak_results/', pattern = 'common.bed')
 
-load_MACS2_bdgdiff = function(l1, l2, m, p_thresh = 0){
+load_MACS2_bdgdiff = function(l1, l2, m, p_thresh = 0, diff_peaks_dir = "data/diff_peak_results/"){
   # columns of res tables will be chr,start,end,up/down,log10pval,...
-  save_name = paste0("data/diff_peak_results/", paste(l1, m, "vs", l2, m, sep = "_"), ".save")
+  save_name = paste0(diff_peaks_dir, paste(l1, m, "vs", l2, m, sep = "_"), ".save")
   print(save_name)
   if (file.exists(save_name)) {
     print("loading precalculated results...")
@@ -14,7 +16,7 @@ load_MACS2_bdgdiff = function(l1, l2, m, p_thresh = 0){
     
   } else {
     diffpeak_res = matrix("", nrow = 0, ncol = 5)
-    bed_files = dir(path = "data/diff_peak_results", full.names = T, pattern = paste0(paste(l1, m, sep = "_"), ".+", paste(l2, m, sep = "_"), ".+.bed"))
+    bed_files = dir(path = diff_peaks_dir, full.names = T, pattern = paste0(paste(l1, m, sep = "_"), ".+", paste(l2, m, sep = "_"), ".+.bed"))
     
     for (fname in bed_files) {
       print(paste(fname, " from MACS2 bdgdiff loading..."))
@@ -54,6 +56,25 @@ load_MACS2_bdgdiff = function(l1, l2, m, p_thresh = 0){
 #         stop("histone marks don't match!")
 #     m = mods[a]
 # } 
+do_prostate = T
+if(do_prostate){
+  cell_lines = c('LN', 'PC', 'RW')
+  a_list = c(1, 1, 2)
+  b_list = c(2, 3, 3)
+  histone_mods = c('H3K4ME3', 'H3K27ME3')
+  MACS2_bdgdiff_res = list()
+  for(i in 1:3){
+    a = a_list[i]
+    b = b_list[i]
+    for(hm in histone_mods){
+      res = load_MACS2_bdgdiff(cell_lines[a], cell_lines[b], hm, diff_peaks_dir = "data/prostate_data/ChIPseq/diff_peaks/")
+      MACS2_bdgdiff_res[[paste(cell_lines[a], hm, cell_lines[b], hm, sep = '_')]] = res
+    }
+  }
+  
+  save(MACS2_bdgdiff_res, file = 'data/precalc_prostate/MACS2_bdgdiff_res.save')
+}else{
+
 cell_lines = c('MCF10A', 'MCF7', 'MDA231')
 a_list = c(1, 1, 2)
 b_list = c(2, 3, 3)
@@ -69,5 +90,5 @@ for(i in 1:3){
 }
 
 save(MACS2_bdgdiff_res, file = 'data/precalc_results/MACS2_bdgdiff_res.save')
-
+}
 

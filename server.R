@@ -56,7 +56,7 @@ shinyServer(function(input, output, session) {
     default = character()
     if(v$detail_ready){
       default = union(react_line_x(), react_line_y())
-      keep = c(input$x_type, input$y_type) == xy_type_choices[1]
+      keep = c(x_type(), y_type()) == xy_type_choices[1]
       default = default[keep]
     }
     checkboxGroupInput(inputId = 'detail_lines', label = 'Detail Cell Lines', choices = cell_lines, selected = default)
@@ -67,7 +67,7 @@ shinyServer(function(input, output, session) {
     default = character()
     if(v$detail_ready){
       default = union(react_mark_x(), react_mark_y())
-      keep = c(input$x_type, input$y_type) == xy_type_choices[1]
+      keep = c(x_type(), y_type()) == xy_type_choices[1]
       default = default[keep]
     }
     checkboxGroupInput(inputId = 'detail_marks', label = 'Detail Histone Marks', choices = histone_mods, selected = default)
@@ -149,8 +149,9 @@ shinyServer(function(input, output, session) {
       MIN = min(disp_data)
       MAX = max(disp_data)
       YMAX = max(apply(disp_data, 1, min))
-      plot_merge(data = disp_data, list_a = list_up, list_b = list_dn, colors = colors, note = note,
+      plot_merge(data = disp_data, list_a = list_up, list_b = list_dn, colors = colors, note = '',
                  xlab = paste(name_b, 'log2 -', name_a, 'log2'), ylab = paste('minimum of', name_a, 'and', name_b), xlim = c(-MAX, MAX), ylim = c(MIN, YMAX), cex = .8)
+      text(-MAX + 2*MAX*.02,MIN + (YMAX-MIN)*.98, note, adj = c(0,1))
       detect_thresh = input$detect_threshold
       if(detect_thresh > 0){
         lines(c(-MAX, MAX), c(detect_thresh, detect_thresh), col = 'yellow')
@@ -318,7 +319,7 @@ shinyServer(function(input, output, session) {
   react_x_values = reactive({
     if(debug) print('react_x_vals')
     
-    if(input$x_type == xy_type_choices[1]){
+    if(x_type() == xy_type_choices[1]){
       dat = my_fe[,input$x_col_name]
     }else{
       dat = my_rna[,input$x_col_name]
@@ -329,7 +330,7 @@ shinyServer(function(input, output, session) {
   react_y_values = reactive({
     if(debug) print('react_y_vals')
     
-    if(input$y_type == xy_type_choices[1]){
+    if(y_type() == xy_type_choices[1]){
       dat = my_fe[,input$y_col_name]
     }else{
       dat = my_rna[,input$y_col_name]
@@ -379,7 +380,7 @@ shinyServer(function(input, output, session) {
   
   react_index_x = reactive({
     if(debug) print('react_index_x')
-    if(input$x_type == xy_type_choices[1]){
+    if(x_type() == xy_type_choices[1]){
       sel = name2index[input$x_col_name]  
     }else{
       sel = rna_name2index[input$x_col_name]  
@@ -456,25 +457,62 @@ shinyServer(function(input, output, session) {
     }
     mark1 = react_mark_x()
     mark2 = react_mark_y()
-    if(all(c(input$x_type, input$y_type) == xy_type_choices[1]) && mark1 == mark2){
+    if(all(c(x_type(), y_type()) == xy_type_choices[1]) && mark1 == mark2){
       return(checkboxGroupInput(inputId = 'available_methods', label = 'Differential Methods', choices = selection_method_choices, selected = selection_method_choices[1]))  
     }else{
       return(checkboxGroupInput(inputId = 'available_methods', label = 'Differential Methods', choices = marks_mismatch_message, selected = marks_mismatch_message))  
     }
   })
   
-  output$x_select = renderUI({
-    if(input$x_type == xy_type_choices[[2]]){
-      choices = colnames(my_rna)
+  x_type = reactive({
+    
+    # input$detail_type
+    if(is.null(input$x_type)){
+      return(xy_type_choices[1])
     }else{
-      choices = colnames(my_fe)
+      return(input$x_type)
     }
+  })
+  
+  y_type = reactive({
+    # input$detail_type
+    if(is.null(input$y_type)){
+      return(xy_type_choices[1])
+    }else{
+      return(input$y_type)
+    }
+  })
+  
+  output$x_select = renderUI({
+    
+    input$detail_type
+    choices = tryCatch(expr = {
+      if(x_type() == xy_type_choices[[2]]){
+        cn = colnames(my_rna)
+      }else{
+        cn = colnames(my_fe)
+      }
+      cn
+    }, error = function(e){
+      return(colnames(my_fe))
+    })
     return(selectInput(inputId = 'x_col_name', label = 'Select "From" Value ', choices = choices, selected = choices[1]))
     
   })
   
   output$y_select = renderUI({
-    choices = colnames(my_fe)
+    input$detail_type
+    choices = tryCatch(expr = {
+      if(y_type() == xy_type_choices[[2]]){
+        cn = colnames(my_rna)
+      }else{
+        cn = colnames(my_fe)
+      }
+      cn
+      
+    }, error = function(e){
+      return(colnames(my_fe))
+    })
     return(selectInput(inputId = 'y_col_name', label = 'Select "To" value ', choices = choices, selected = choices[7]))
   })
   

@@ -8,8 +8,8 @@ shinyUI(
       sidebarPanel( width = 2,
                     tabsetPanel(
                       tabPanel("Main",
-                               radioButtons(inputId = 'x_type', label = 'x-axis datatype', choices = xy_type_choices, selected = xy_type_choices[1]),
-                               radioButtons(inputId = 'y_type', label = 'y-axis datatype', choices = xy_type_choices, selected = xy_type_choices[1]),
+#                                radioButtons(inputId = 'x_type', label = 'x-axis datatype', choices = xy_type_choices, selected = xy_type_choices[1]),
+#                                radioButtons(inputId = 'y_type', label = 'y-axis datatype', choices = xy_type_choices, selected = xy_type_choices[1]),
                                uiOutput(outputId = 'x_select'),
                                uiOutput(outputId = 'y_select'),
                                

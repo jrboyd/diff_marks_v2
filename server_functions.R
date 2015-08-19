@@ -35,10 +35,11 @@ plot_details = function(disp_data, list_up, list_dn, sel, lines2plot, marks2plot
     nc = 8
     if(doSidePlot) nc = nc + 1
     lmat_custom = matrix(0, ncol = nc, nrow = nr)
-    lmat_custom[nr-1,nc-2] = 1
+    lmat_custom[2,nc-2] = 1
     lmat_custom[nr-1,nc-1] = 2
     lmat_custom[nr,-2:-1+nc] = 3
-    lmat_custom[1,nc] = 4
+    lmat_custom[2,nc] = 4
+    lmat_custom[2,nc-1] = 5
     rna_toplot = paste(lines2plot, '_rna', sep = '')
     line2i = 1:3
     names(line2i) = cell_lines
@@ -61,10 +62,10 @@ plot_details = function(disp_data, list_up, list_dn, sel, lines2plot, marks2plot
                                 labels_above = marks2plot,
                                 sidePlot_smoothing = smoothing_window)
     
-    plot0();text(.5,.2, 'average profile')
+    plot0();text(.5,.1, 'average profile', adj = c(.5,0))
     plot0();
     if(cluster_plot_type == exDat_choices[3]){
-      text(.5,.7, 'log gene expression')
+      text(.5,.7, 'each dash is 2-fold')
     }else{
       for(i in 1:length(cell_lines)){
         cl = cell_lines[i]
@@ -83,7 +84,9 @@ plot_details = function(disp_data, list_up, list_dn, sel, lines2plot, marks2plot
       text(.75,.8, "red line is median")
     }
     if(doSidePlot) legend('center', legend = to_plot, fill = RColorBrewer::brewer.pal(8, 'Dark2')[1:length(to_plot)], horiz = T, bty = 'n')
-    plot0();text(.5,.5, 'cluster size')
+    plot0();text(.5,.1, 'cluster size', adj = c(.5,0))
+    plot0();text(.5,.3, 'RNA expression', adj = c(.5,0))
+    
   }else if(plot_type == detail_plot_types[4]){#heatmap of all cell lines and mods
     if(length(sel) == 1){
       par(mai = c(2,1,1,1))

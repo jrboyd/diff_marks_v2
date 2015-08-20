@@ -19,6 +19,7 @@ if(!exists('loaded')){
   if(!dir.exists(pre_calc_dir)){
    stop('no valid pre calc results found! please update pre_calc_dir') 
   }
+  print(pre_calc_dir)
   to_load = dir(pre_calc_dir, full.names = T)
   for(tl in to_load){
     print(basename(tl))
@@ -30,21 +31,22 @@ if(!exists('loaded')){
     enst_ref = matched_enst_ref
     ensg_ref = enst_ref
     rownames(ensg_ref) = ensg_ref$gene_id
-    if(file.exists("ref/ensg_dicts.save")){
-      load("ref/ensg_dicts.save")
-    }else if(file.exists("/slipstream/home/joeboyd/ref/ensg_dicts.save")){
-      load("/slipstream/home/joeboyd/ref/ensg_dicts.save")
-    }else{
-      stop("ensg_dicts for prostate not found!")
-    }
+#     if(file.exists("ref/ensg_dicts.save")){
+#       load("ref/ensg_dicts.save")
+#     }else if(file.exists("/slipstream/home/joeboyd/ref/ensg_dicts.save")){
+#       load("/slipstream/home/joeboyd/ref/ensg_dicts.save")
+#     }else{
+#       stop("ensg_dicts for prostate not found!")
+#     }
+    ensg_dict = promoters_counted_gtf
     promoter_wide_matched_prof = matched_ngs_promoters
     
   }
   my_fe = log2(promoter_FE_matched)
   if(!prostate){
     colnames(my_fe) = gsub('_prom', '', colnames(my_fe))
-    tmp = c(3,4,1,2,5,6)
-    my_fe = my_fe[,c(tmp, tmp + 6, tmp + 12)]
+    tmp = c(3,9,15,4,10,16,1,7,13,2,8,14,5,11,17,6,12,18)
+    my_fe = my_fe[,tmp]
   }else{
     tmp = c(6,2,4,5,1,3)
     my_fe = my_fe[,c(tmp)]

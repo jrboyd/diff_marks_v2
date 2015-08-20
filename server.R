@@ -226,8 +226,19 @@ shinyServer(function(input, output, session) {
     if(debug) print(paste(react_index_x(), react_index_y()))
     a = colnames(my_fe)[react_index_x()]
     b = colnames(my_fe)[react_index_y()]
+    print(c(a,b))
     key = paste(a, b, sep = '_')
     out = MAnorm_res[[key]]
+    if(is.null(out)){
+      key = paste(b, a, sep = '_')
+      out = MAnorm_res[[key]]
+      tmp = out$up
+      out$up = out$down
+      out$down = tmp
+    }
+    # print(key)
+    # out = MAnorm_res[[key]]
+    # print(names(MAnorm_res))
     return(out)
   })
   
@@ -247,7 +258,15 @@ shinyServer(function(input, output, session) {
     if(debug) print(paste(react_index_x(), react_index_y()))
     a = colnames(my_fe)[react_index_x()]
     b = colnames(my_fe)[react_index_y()]
-    out = MACS2_bdgdiff_res[[paste(a, b, sep = '_')]]
+    key = paste(a, b, sep = '_')
+    out = MACS2_bdgdiff_res[[key]]
+    if(is.null(out)){
+      key = paste(b, a, sep = '_')
+      out = MACS2_bdgdiff_res[[key]]
+      tmp = out$up
+      out$up = out$down
+      out$down = tmp
+    }
     return(out)
   })
   
@@ -513,7 +532,7 @@ shinyServer(function(input, output, session) {
     }, error = function(e){
       return(colnames(my_fe))
     })
-    return(selectInput(inputId = 'y_col_name', label = 'Select "To" value ', choices = choices, selected = choices[7]))
+    return(selectInput(inputId = 'y_col_name', label = 'Select "To" value ', choices = choices, selected = choices[2]))
   })
   
   output$goTable = renderTable({

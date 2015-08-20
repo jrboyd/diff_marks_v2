@@ -10,8 +10,11 @@ if(!exists('loaded')){
   source("scripts/functions_movingAverage.R")
   
   pre_calc_dir = 'data/precalc_results/'
+  prostate = T
+  if(prostate) pre_calc_dir = "data/precalc_prostate/"
   if(!dir.exists(pre_calc_dir)){
     pre_calc_dir = '/slipstream/home/joeboyd/data/precalc_results'  
+    if(prostate) pre_calc_dir = '/slipstream/home/joeboyd/data/precalc_prostate'
   }
   if(!dir.exists(pre_calc_dir)){
    stop('no valid pre calc results found! please update pre_calc_dir') 
@@ -21,14 +24,33 @@ if(!exists('loaded')){
     print(basename(tl))
     load(tl)
   }
+  if(prostate){
+    promoter_FE_matched = matched_promoter_FE
+    rna_norm_matched = matched_rna
+    enst_ref = matched_enst_ref
+    ensg_ref = enst_ref
+    rownames(ensg_ref) = ensg_ref$gene_id
+    if(file.exists("ref/ensg_dicts.save")){
+      load("ref/ensg_dicts.save")
+    }else if(file.exists("/slipstream/home/joeboyd/ref/ensg_dicts.save")){
+      load("/slipstream/home/joeboyd/ref/ensg_dicts.save")
+    }else{
+      stop("ensg_dicts for prostate not found!")
+    }
+    promoter_wide_matched_prof = matched_ngs_promoters
+    
+  }
   my_fe = log2(promoter_FE_matched)
-  colnames(my_fe) = gsub('_prom', '', colnames(my_fe))
-  tmp = c(3,4,1,2,5,6)
-  my_fe = my_fe[,c(tmp, tmp + 6, tmp + 12)]
-  #colnames(my_fe) = gsub('_', ' ', colnames(my_fe))
+  if(!prostate){
+    colnames(my_fe) = gsub('_prom', '', colnames(my_fe))
+    tmp = c(3,4,1,2,5,6)
+    my_fe = my_fe[,c(tmp, tmp + 6, tmp + 12)]
+  }else{
+    tmp = c(6,2,4,5,1,3)
+    my_fe = my_fe[,c(tmp)]
+  }
   
   my_rna = log2(rna_norm_matched + 4)
-  #colnames(my_rna) = sub('_rna', '', colnames(my_rna))
   
   ngs_profiles = lapply(promoter_wide_matched_prof,  function(x){
     MIN = quantile(x, .1)

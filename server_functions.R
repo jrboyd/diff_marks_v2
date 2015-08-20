@@ -62,7 +62,7 @@ plot_details = function(disp_data, list_up, list_dn, sel, lines2plot, marks2plot
                                 labels_above = marks2plot,
                                 sidePlot_smoothing = smoothing_window)
     
-    plot0();text(.5,.1, 'average profile', adj = c(.5,0))
+    plot0(); if(doSidePlot) text(.5,.1, 'average profile', adj = c(.5,0))
     plot0();
     if(cluster_plot_type == exDat_choices[3]){
       text(.5,.7, 'each dash is 2-fold')
@@ -187,6 +187,7 @@ get_sel_table = function(sel, hmap_res ){
     sel_as_symbols = ensg_dict[sel,]$gene_name
     sel_as_position = ensg_dict[sel,]$ucsc
     base_url = 'https://genome.ucsc.edu/cgi-bin/hgTracks?hgS_doOtherUser=submit&hgS_otherUserName=jrboyd&hgS_otherUserSessionName=TM_K4_with_peaks'
+    if(prostate) base_url = 'https://genome.ucsc.edu/cgi-bin/hgTracks?hgS_doOtherUser=submit&hgS_otherUserName=jrboyd&hgS_otherUserSessionName=prostate_old_FE'
     sel_as_urls = paste0(base_url, '&position=', sel_as_position)
     sel_as_urls = paste0('<a target="_blank" href="', sel_as_urls, '">On UCSC</a>') 
     out_table = cbind(sel, sel_as_symbols, sel_as_position, sel_as_urls)
@@ -211,6 +212,7 @@ get_sel_table = function(sel, hmap_res ){
     sel_as_symbols = ensg_dict[sel,]$gene_name
     sel_as_position = ensg_dict[sel,]$ucsc
     base_url = 'https://genome.ucsc.edu/cgi-bin/hgTracks?hgS_doOtherUser=submit&hgS_otherUserName=jrboyd&hgS_otherUserSessionName=TM_K4_with_peaks'
+    if(prostate) base_url = 'https://genome.ucsc.edu/cgi-bin/hgTracks?hgS_doOtherUser=submit&hgS_otherUserName=jrboyd&hgS_otherUserSessionName=prostate_old_FE'
     sel_as_urls = paste0(base_url, '&position=', sel_as_position)
     sel_as_urls = paste0('<a target="_blank" href="', sel_as_urls, '">On UCSC</a>') 
     out_table = cbind(sel, sel_as_symbols, sel_as_position, sel_as_urls, paste0('<td bgcolor="', ensg2colors, '">',ensg2num,'</td>'))

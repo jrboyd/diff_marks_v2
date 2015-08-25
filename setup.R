@@ -10,7 +10,7 @@ if(!exists('loaded')){
   source("scripts/functions_movingAverage.R")
   
   pre_calc_dir = 'data/precalc_results/'
-  prostate = F
+  prostate = grepl("prostate", basename(getwd()))
   if(prostate) pre_calc_dir = "data/precalc_prostate/"
   if(!dir.exists(pre_calc_dir)){
     pre_calc_dir = '/slipstream/home/joeboyd/data/precalc_results'  

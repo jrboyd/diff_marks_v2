@@ -10,7 +10,7 @@ if(!exists('loaded')){
   source("scripts/functions_movingAverage.R")
   
   pre_calc_dir = 'data/precalc_results/'
-  prostate = T
+  prostate = F
   if(prostate) pre_calc_dir = "data/precalc_prostate/"
   if(!dir.exists(pre_calc_dir)){
     pre_calc_dir = '/slipstream/home/joeboyd/data/precalc_results'  
@@ -53,6 +53,7 @@ if(!exists('loaded')){
   }
   
   my_rna = log2(rna_norm_matched + 4)
+  colnames(my_rna) = sub("_rna", "", colnames(my_rna))
   
   ngs_profiles = lapply(promoter_wide_matched_prof,  function(x){
     MIN = quantile(x, .1)
@@ -70,9 +71,11 @@ if(!exists('loaded')){
   display_filter_choices = c("Background", "Up", "Down")
   selection_filter_choices = c("Up or Down", "Up", "Down", "Unchanged", 'No Filter')
   selection_method_choices = c("Fold Change", "MAnorm", "MACS2 bdgdiff")
+  selection_method_choices_rna = c("Fold Change", "DESeq2")
   detail_plot_types = c("None", "ngsplots - profiles", "ngsplots - heatmap", "FE heatmap")
   deseq_groups = c('none', 'MCF10A vs MCF7', 'MCF10A vs MDA231', 'MCF7 vs MDA231')
   exDat_choices = c("Lines", "Heatmaps", "Barplots")
+  modes = list(mixed = 'mixed', rna = 'rna', chip = 'chip')
   as_FC = F
   exDat_linePlot = function(dat, ylim){
     xs = 1:ncol(dat)

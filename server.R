@@ -10,7 +10,10 @@ shinyServer(function(input, output, session) {
     hmap_res = NULL,
     data_ready = F,
     volcano_ready = F,
-    detail_ready = F
+    detail_ready = F,
+    current_mode = modes$chip,
+    fresh_start_up = T
+    
     #selected = character()
   )
   
@@ -56,8 +59,8 @@ shinyServer(function(input, output, session) {
     default = character()
     if(v$detail_ready){
       default = union(react_line_x(), react_line_y())
-      keep = c(x_type(), y_type()) == xy_type_choices[1]
-      default = default[keep]
+      #       keep = c(x_type(), y_type()) == xy_type_choices[1]
+      #       default = default[keep]
     }
     checkboxGroupInput(inputId = 'detail_lines', label = 'Detail Cell Lines', choices = cell_lines, selected = default)
   })
@@ -101,6 +104,7 @@ shinyServer(function(input, output, session) {
     
     
     hmap_res = plot_details(disp_data, list_up, list_dn, sel, lines2plot, marks2plot, plot_type, smoothing_window, input$cluster_plot_type)
+    ?isolate
     if(!is.null(hmap_res)){ v$hmap_res = hmap_res}else{v$hmap_res = NULL}
   })
   
@@ -129,8 +133,6 @@ shinyServer(function(input, output, session) {
     try({
       name_a = colnames(disp_data)[1]
       name_b = colnames(disp_data)[2]
-#       print('name')
-#       print(name_a)
       scale = rep(1, nrow(disp_data)) #max(disp_data)
       names(scale) = rownames(disp_data)
       colors = rep(rgb(0,0,0,input$bg_opacity), nrow(disp_data))
@@ -154,6 +156,7 @@ shinyServer(function(input, output, session) {
       text(-MAX + 2*MAX*.02,MIN + (YMAX-MIN)*.98, note, adj = c(0,1))
       detect_thresh = input$detect_threshold
       if(detect_thresh > 0){
+        print(detect_thresh)
         lines(c(-MAX, MAX), c(detect_thresh, detect_thresh), col = 'yellow')
         #lines(c(detect_thresh, detect_thresh), c(MIN, detect_thresh),  col = 'yellow')
       }
@@ -173,8 +176,18 @@ shinyServer(function(input, output, session) {
   
   #return rownames of detectable datapoints
   react_get_detectable = reactive({
-    keep = apply(my_fe,1,max) > input$detect_threshold
-    return(names(keep)[keep])
+    kept = rownames(my_fe)
+    if(v$current_mode == modes$chip){
+      keep = apply(my_fe,1,max) > input$detect_threshold
+      kept = names(keep)[keep]
+    }else if(v$current_mode == modes$rna){
+      keep = apply(my_rna,1,max) > input$detect_threshold
+      kept = names(keep)[keep]
+    }else{#mode must be mixed
+      keep = apply(cbind(my_rna, my_fe),1,max) > input$detect_threshold
+      kept = names(keep)[keep]
+    }
+    return(kept)
   })
   
   #displayed data has been selected as xy, passes detectable test, 
@@ -223,10 +236,8 @@ shinyServer(function(input, output, session) {
   
   react_loadMAnorm = reactive({
     if(debug) print('react_loadMAnorm')
-    if(debug) print(paste(react_index_x(), react_index_y()))
-    a = colnames(my_fe)[react_index_x()]
-    b = colnames(my_fe)[react_index_y()]
-    print(c(a,b))
+    a = input$x_col_name
+    b = input$y_col_name
     key = paste(a, b, sep = '_')
     out = MAnorm_res[[key]]
     if(is.null(out)){
@@ -236,9 +247,37 @@ shinyServer(function(input, output, session) {
       out$up = out$down
       out$down = tmp
     }
-    # print(key)
-    # out = MAnorm_res[[key]]
-    # print(names(MAnorm_res))
+    return(out)
+  })
+  
+  react_DESeq2 = reactive({
+    if(debug) print('react_MAnorm')
+    out = react_loadDESeq2()
+    if(length(out) > 0){
+      pval_thresh = input$pval_threshold
+      keep = -log10(out$up) > pval_thresh
+      out$up = names(out$up)[keep]
+      keep = -log10(out$down) > pval_thresh
+      out$down = names(out$down)[keep]
+    }
+    return(out)
+    
+  })
+  
+  react_loadDESeq2 = reactive({
+    if(debug) print('react_DESeq2')
+    a = input$x_col_name
+    b = input$y_col_name
+    
+    key = paste(a, 'vs', b, 'UP', sep = '_')
+    out = list()
+    out$down = deseq_results[[key]]
+    out$up = deseq_results[[sub("UP", "DOWN", key)]]
+    if(is.null(out$up)){
+      key = paste(b, a, sep = '_')
+      out$down = deseq_results[[key]]
+      out$up = deseq_results[[sub("UP", "DOWN", key)]]
+    }
     return(out)
   })
   
@@ -255,9 +294,8 @@ shinyServer(function(input, output, session) {
   
   react_loadMACS2 = reactive({
     if(debug) print('react_loadMACS2')
-    if(debug) print(paste(react_index_x(), react_index_y()))
-    a = colnames(my_fe)[react_index_x()]
-    b = colnames(my_fe)[react_index_y()]
+    a = input$x_col_name
+    b = input$y_col_name
     key = paste(a, b, sep = '_')
     out = MACS2_bdgdiff_res[[key]]
     if(is.null(out)){
@@ -284,13 +322,23 @@ shinyServer(function(input, output, session) {
   #process_lists intersects selected diff methods for up or down
   process_lists = function(direction, sel_methods){
     new_list = character()
-    list_fun = list(
-      react_FC(),
-      react_MAnorm(),
-      react_MACS2())
-    names(list_fun) = selection_method_choices#hardcoded from ui.R, room for improvement
+    list_fun = list(react_FC())#if mode is mixed, will just use FC
+    names(list_fun) = marks_mismatch_message
+    if(v$current_mode == modes$chip){
+      list_fun = list(
+        react_FC(),
+        react_MAnorm(),
+        react_MACS2())
+      names(list_fun) = selection_method_choices#hardcoded from ui.R, room for improvement
+    }else if(v$current_mode == modes$rna){
+      list_fun = list(
+        react_FC(),
+        react_DESeq2())
+      names(list_fun) = selection_method_choices_rna#hardcoded from ui.R, room for improvement
+    }
     if(is.null(sel_methods)){
-      if(debug) print('no lists selected')
+      if(debug) 
+        print('no lists selected')
       
     }else{
       for(i in 1:length(sel_methods)){
@@ -312,11 +360,16 @@ shinyServer(function(input, output, session) {
     if(length(sel_methods) > 0 && sel_methods == marks_mismatch_message){
       sel_methods = selection_method_choices[1]
     }
-    if(is.null(sel_methods)){
-      sel_methods = selection_method_choices[1]
+    #TODO
+    out_list = character()
+    if(!is.null(sel_methods)){
+      out_list = process_lists(direction, sel_methods)
+      out_list = intersect(out_list, react_get_detectable())
+    }else if(v$fresh_start_up){
+      v$fresh_start_up = F
+      out_list = process_lists(direction, selection_method_choices[1])
+      out_list = intersect(out_list, react_get_detectable())
     }
-    out_list = process_lists(direction, sel_methods)
-    out_list = intersect(out_list, react_get_detectable())
     return(out_list)
   })
   
@@ -327,61 +380,65 @@ shinyServer(function(input, output, session) {
     if(length(sel_methods) > 0 && sel_methods == marks_mismatch_message){
       sel_methods = selection_method_choices[1]
     }
-    if(is.null(sel_methods)){
-      sel_methods = selection_method_choices[1]
+    out_list = character()
+    if(!is.null(sel_methods)){
+      out_list = process_lists(direction, sel_methods)
+      out_list = intersect(out_list, react_get_detectable())
     }
-    out_list = process_lists(direction, sel_methods)
-    out_list = intersect(out_list, react_get_detectable())
     return(out_list)
   })
   
-  react_x_values = reactive({
+  react_x_values = function(){
     if(debug) print('react_x_vals')
-    
-    if(x_type() == xy_type_choices[1]){
+    dat = NULL
+    if(any(input$x_col_name == colnames(my_fe))){
       dat = my_fe[,input$x_col_name]
-    }else{
+    }else if(any(input$x_col_name == colnames(my_rna))){
       dat = my_rna[,input$x_col_name]
-    }
-    return(dat)
-  })
-  
-  react_y_values = reactive({
-    if(debug) print('react_y_vals')
-    
-    if(y_type() == xy_type_choices[1]){
-      dat = my_fe[,input$y_col_name]
     }else{
-      dat = my_rna[,input$y_col_name]
+      stop(paste("input$x_col_name", input$x_col_name, "not in any loaded data source"))
     }
     return(dat)
-  })
+  }
   
-  react_deseq = reactive({
-    dpair = input$deseq_pair
-    if(dpair == deseq_groups[1]){#none option selected
-      return(NULL)
+  react_y_values = function(){
+    if(debug) print('react_y_vals')
+    dat = NULL
+    if(any(input$y_col_name == colnames(my_fe))){
+      dat = my_fe[,input$y_col_name]
+    }else if(any(input$y_col_name == colnames(my_rna))){
+      dat = my_rna[,input$y_col_name]
+    }else{
+      stop(paste("input$y_col_name", input$y_col_name, "not in any loaded data source"))
     }
-    dpair = gsub(' ', '_', dpair)
-    line_a = strsplit(dpair, '_')[[1]][1]
-    line_b = strsplit(dpair, '_')[[1]][3]
-    dpair = paste(dpair, c('UP', 'DOWN'), sep = '_')
-    up_res = deseq_results[[dpair[2]]]
-    down_res = deseq_results[[dpair[1]]]
-    
-    keep = -log10(up_res) > input$pval_threshold
-    
-    up_res = names(up_res)[keep]
-    keep = (my_rna[up_res,line_b] - my_rna[up_res,line_a]) > input$fc_threshold
-    up_res = up_res[keep]
-    keep = -log10(down_res) > input$pval_threshold
-    down_res = names(down_res)[keep]
-    keep = my_rna[down_res,line_b] - my_rna[down_res,line_a] < -input$fc_threshold
-    down_res = down_res[keep]
-    out = list(up = up_res, down = down_res)
-    
-    return(out)
-  })
+    return(dat)
+  }
+  
+  #   react_deseq = reactive({
+  #     dpair = input$deseq_pair
+  #     if(dpair == deseq_groups[1]){#none option selected
+  #       return(NULL)
+  #     }
+  #     dpair = gsub(' ', '_', dpair)
+  #     line_a = strsplit(dpair, '_')[[1]][1]
+  #     line_b = strsplit(dpair, '_')[[1]][3]
+  #     dpair = paste(dpair, c('UP', 'DOWN'), sep = '_')
+  #     up_res = deseq_results[[dpair[2]]]
+  #     down_res = deseq_results[[dpair[1]]]
+  #     
+  #     keep = -log10(up_res) > input$pval_threshold
+  #     
+  #     up_res = names(up_res)[keep]
+  #     keep = (my_rna[up_res,line_b] - my_rna[up_res,line_a]) > input$fc_threshold
+  #     up_res = up_res[keep]
+  #     keep = -log10(down_res) > input$pval_threshold
+  #     down_res = names(down_res)[keep]
+  #     keep = my_rna[down_res,line_b] - my_rna[down_res,line_a] < -input$fc_threshold
+  #     down_res = down_res[keep]
+  #     out = list(up = up_res, down = down_res)
+  #     
+  #     return(out)
+  #   })
   
   react_xy_dat = reactive({
     if(debug) print('react_xy_dat')
@@ -396,30 +453,6 @@ shinyServer(function(input, output, session) {
     colnames(dat) = c(input$x_col_name, input$y_col_name)
     return(dat)
   })
-  
-  react_index_x = reactive({
-    if(debug) print('react_index_x')
-    if(x_type() == xy_type_choices[1]){
-      sel = name2index[input$x_col_name]  
-    }else{
-      sel = rna_name2index[input$x_col_name]  
-    }
-    if(is.null(sel)) sel = 1
-    if(length(sel) < 1) sel = 1
-    return(sel)
-  })
-  
-  react_index_y = reactive({
-    if(debug) print('react_index_y')
-    sel = name2index[input$y_col_name]
-    if(is.null(sel)) sel = 2
-    if(length(sel) < 1) sel = 2
-    return(sel)
-  })
-  
-  
-  
-  
   
   react_get_selected = reactive({
     if(debug) print('react_get_selected')
@@ -470,20 +503,34 @@ shinyServer(function(input, output, session) {
   })
   
   output$available_methods = renderUI({
+    if(debug) print(v$current_mode)
     n_hist = length(unique(histone_mods))
     if(is.null(react_xy_dat())){
       return(checkboxGroupInput(inputId = 'available_methods', label = 'Differential Methods', choices = 'waiting on data...'))
     }
     mark1 = react_mark_x()
     mark2 = react_mark_y()
-    if(all(c(x_type(), y_type()) == xy_type_choices[1]) && mark1 == mark2){
+    if(v$current_mode == modes$chip){
       return(checkboxGroupInput(inputId = 'available_methods', label = 'Differential Methods', choices = selection_method_choices, selected = selection_method_choices[1]))  
+    }else if(v$current_mode == modes$rna){
+      return(checkboxGroupInput(inputId = 'available_methods', label = 'Differential Methods', choices = selection_method_choices_rna, selected = selection_method_choices_rna[1]))  
     }else{
       return(checkboxGroupInput(inputId = 'available_methods', label = 'Differential Methods', choices = marks_mismatch_message, selected = marks_mismatch_message))  
     }
   })
+  outputOptions(output, "available_methods", suspendWhenHidden = FALSE)
   
   x_type = reactive({
+    if(input$x_type != input$y_type){
+      v$current_mode = modes$mixed
+    }else if(input$x_type == xy_type_choices[1]){
+      v$current_mode = modes$chip
+    }else if(input$x_type == xy_type_choices[2]){
+      v$current_mode = modes$rna
+    }else{
+      stop("unrecognized x_type encountered")
+    }
+    
     
     # input$detail_type
     if(is.null(input$x_type)){
@@ -494,6 +541,15 @@ shinyServer(function(input, output, session) {
   })
   
   y_type = reactive({
+    if(input$x_type != input$y_type){
+      v$current_mode = modes$mixed
+    }else if(input$x_type == xy_type_choices[1]){
+      v$current_mode = modes$chip
+    }else if(input$x_type == xy_type_choices[2]){
+      v$current_mode = modes$rna
+    }else{
+      stop("unrecognized x_type encountered")
+    }
     # input$detail_type
     if(is.null(input$y_type)){
       return(xy_type_choices[1])
@@ -541,11 +597,7 @@ shinyServer(function(input, output, session) {
     }
     if(debug) print("goTable")
     sel = react_get_selected()
-    writeClipboard((sel))
-    if(length(sel) < 1){
-      return(xtable(as.data.frame('no data selected')))
-    }
-    out_table = xtable(as.data.frame(get_sel_table(sel, v$hmap_res)))
+    out_table = xtable(as.data.frame(1:10))
     return(out_table)
   }, sanitize.text.function = force)   
   
@@ -584,6 +636,35 @@ shinyServer(function(input, output, session) {
   )
   
   ###volcano plot download
+  dl_volcano_name = reactive({
+    fname = dl_name()
+    fname = paste('volcano_',fname, '.pdf', sep = '')
+  })
+  content_volcano = function(file){
+    pdf(file, width = input$volcano_width*100/50, height = 650/50)
+    disp_data = my_fe
+    list_up = react_list_up()
+    list_up = intersect(rownames(disp_data), list_up)
+    list_dn = react_list_dn()
+    list_dn = intersect(rownames(disp_data), list_dn)
+    sel = react_get_selected()
+    sel = intersect(rownames(disp_data), sel)
+    
+    lines2plot = input$volcano_lines
+    marks2plot = input$volcano_marks
+    plot_type = input$volcano_type
+    smoothing_window = input$smoothing_window
+    
+    
+    hmap_res = plot_volcanos(disp_data, list_up, list_dn, sel, lines2plot, marks2plot, plot_type, smoothing_window, input$cluster_plot_type)
+    dev.off()
+  }
+  output$dl_volcano = downloadHandler(
+    filename = dl_volcano_name,
+    content = content_volcano
+  )
+  
+  ##detail plot download
   dl_detail_name = reactive({
     fname = dl_name()
     fname = paste('detail_',fname, '.pdf', sep = '')

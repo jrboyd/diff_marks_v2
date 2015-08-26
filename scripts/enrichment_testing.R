@@ -40,7 +40,7 @@ binom_msig_enrich = function(gene_list, gene_set = NULL, p_thresh = .05, set_reg
   
   n_success = sapply(gene_set_group$sets, function(x){length(intersect(x, gene_list))})
   n_trials = length(gene_list)
-  prob = sapply(gene_set_group$sets, function(x){length((x))}) / 25000
+  prob = sapply(gene_set_group$sets, function(x){length((x))}) / 20000
   all_tests = matrix(0, nrow = length(n_success), ncol = 5)
   rownames(all_tests) = gene_set_group$names
   colnames(all_tests) = c('adj_pval', 'fold-enriched', 'n_obs', 'n_exp', 'set_size')
@@ -50,7 +50,7 @@ binom_msig_enrich = function(gene_list, gene_set = NULL, p_thresh = .05, set_reg
     
     set_size = length(gene_set_group$sets[[i]])
     fe = n_success[i]  / (prob[i] * set_size)
-    all_tests[gene_set_group$names[i],] = c(pval, fe, n_success[i], prob[i] * set_size, set_size )
+    all_tests[gene_set_group$names[i],] = c(pval, fe, n_success[i], prob[i] * n_trials, set_size )
   }
   keep = all_tests[,1] < p_thresh
   all_tests = all_tests[keep,, drop = F]

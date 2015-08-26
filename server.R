@@ -603,6 +603,7 @@ shinyServer(function(input, output, session) {
     clust_sel = as.numeric(input$go_clust)
     sel_msig = input$msig_choices
     binom_res = get_goTable(sel_msig, clust_sel, v$hmap_res)
+    # save(binom_res, file = "last_binom_res.save")
     if(nrow(binom_res) == 0){
       return(xtable(as.data.frame("no significant enrichment found!")))
     }

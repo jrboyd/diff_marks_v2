@@ -129,7 +129,6 @@ shinyServer(function(input, output, session) {
     
     
     hmap_res = plot_details(disp_data, list_up, list_dn, sel, lines2plot, marks2plot, plot_type, smoothing_window, input$cluster_plot_type, as.numeric(input$nclust))
-    ?isolate
     if(!is.null(hmap_res)){ v$hmap_res = hmap_res}else{v$hmap_res = NULL}
   })
   
@@ -694,7 +693,7 @@ shinyServer(function(input, output, session) {
     smoothing_window = input$smoothing_window
     
     
-    hmap_res = plot_details(disp_data, list_up, list_dn, sel, lines2plot, marks2plot, plot_type, smoothing_window, input$cluster_plot_type)
+    hmap_res = plot_details(disp_data, list_up, list_dn, sel, lines2plot, marks2plot, plot_type, smoothing_window, input$cluster_plot_type, as.numeric(input$nclust))
     dev.off()
   }
   output$dl_detail = downloadHandler(

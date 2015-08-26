@@ -1,6 +1,37 @@
 #contains meatier server code
+plot_volcano = function(disp_data, list_up, list_dn, sel, name_a, name_b, bg_opacity, fg_opacity, detect_thresh){
 
-plot_details = function(disp_data, list_up, list_dn, sel, lines2plot, marks2plot, plot_type, smoothing_window, cluster_plot_type){
+  
+  scale = rep(1, nrow(disp_data)) #max(disp_data)
+  names(scale) = rownames(disp_data)
+  colors = rep(rgb(0,0,0,bg_opacity), nrow(disp_data))
+  names(colors) = rownames(disp_data)
+  if(length(list_up) > 0){
+    colors = scale_colors(data = disp_data, scale = scale, list_in = list_up, bg_color = rgb(0,0,0,bg_opacity), list_color = rgb(1,0,0,fg_opacity), colors = colors)
+  }
+  if(length(list_dn) > 0){
+    colors = scale_colors(data = disp_data, scale = scale, list_in = list_dn, bg_color = rgb(0,0,0,bg_opacity), list_color = rgb(0,1,0,fg_opacity), colors = colors)
+  }
+  if(length(sel) > 0){
+    colors = scale_colors(data = disp_data, scale = scale, list_in = sel, bg_color = rgb(0,0,0,bg_opacity), list_color = rgb(0,0,1,fg_opacity), colors = colors)
+  }
+  max_str = max(nchar(name_a), nchar(name_b))
+  note = paste0(format(name_a, width = max_str), ' - ', length(list_dn), '\n', format(name_b, width = max_str), ' - ', length(list_up))
+  MIN = min(disp_data)
+  MAX = max(disp_data)
+  YMAX = max(apply(disp_data, 1, min))
+  plot_merge(data = disp_data, list_a = list_up, list_b = list_dn, colors = colors, note = '',
+             xlab = paste(name_b, 'log2 -', name_a, 'log2'), ylab = paste('minimum of', name_a, 'and', name_b), xlim = c(-MAX, MAX), ylim = c(MIN, YMAX), cex = .8)
+  text(-MAX + 2*MAX*.02,MIN + (YMAX-MIN)*.98, note, adj = c(0,1))
+  
+  if(detect_thresh > 0){
+    #print(detect_thresh)
+    lines(c(-MAX, MAX), c(detect_thresh, detect_thresh), col = 'yellow', lwd = 2)
+    #lines(c(detect_thresh, detect_thresh), c(MIN, detect_thresh),  col = 'yellow')
+  }
+}
+
+plot_details = function(disp_data, list_up, list_dn, sel, lines2plot, marks2plot, plot_type, smoothing_window, cluster_plot_type, nclust){
   hmap_res = NULL
   if(is.null(lines2plot) || is.null(marks2plot)){
     plot0()
@@ -30,7 +61,7 @@ plot_details = function(disp_data, list_up, list_dn, sel, lines2plot, marks2plot
     })
     #only do side plot if it won't be confusing
     doSidePlot = min(c(length(marks2plot), length(lines2plot))) == 1
-    nclust = min(6, length(sel)-1)
+    nclust = min(nclust, length(sel)-1)
     nr = 4 + nclust
     nc = 8
     if(doSidePlot) nc = nc + 1

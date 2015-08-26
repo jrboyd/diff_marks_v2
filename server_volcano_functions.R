@@ -1,6 +1,6 @@
 
 # plot style functions
-ref_line = function(MIN, MAX) lines(c(0, 0), c(MIN, MAX), col = rgb(0, 0, 1, 1), lty = 3, lwd = 6)
+ref_line = function(MIN, MAX) lines(c(0, 0), c(MIN, MAX), col = "dodgerblue", lty = 5, lwd = 2)
 
 custom_plot = function(x, y, col, txt, ...) {
     x_plot = y - x

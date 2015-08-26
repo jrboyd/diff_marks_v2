@@ -8,6 +8,24 @@ if(!exists('loaded')){
   source("scripts/heatmap.ngsplots_kmeans_with_sideplot.R")
   source("scripts/heatmap.res_lists.R")
   source("scripts/functions_movingAverage.R")
+  source("scripts/enrichment_testing.R")
+  
+  
+  ref_dir = 'ref'
+  if(!dir.exists(ref_dir)){
+    ref_dir = '/slipstream/home/joeboyd/ref'
+    if(!dir.exists(ref_dir))
+      stop("reference directory not found!")
+  }
+  home_dir = getwd()
+  setwd(ref_dir)
+  load('ensg2enst.save')
+  load('gene_ontolgies.save')
+  load('msigdb_byCategory.save')
+  load('ensg_dicts.save')
+  load('enst2ensg.save')
+  load('go_table.save')
+  setwd(home_dir)
   
   pre_calc_dir = 'data/precalc_results/'
   prostate = grepl("prostate", basename(getwd()))

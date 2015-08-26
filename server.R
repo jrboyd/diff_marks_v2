@@ -75,6 +75,9 @@ shinyServer(function(input, output, session) {
     }
     checkboxGroupInput(inputId = 'detail_marks', label = 'Detail Histone Marks', choices = histone_mods, selected = default)
   })
+  output$go_clust = renderUI({
+    return(selectInput("go_clust", "GO Cluster input", choices = c(1:input$nclust), selected =  c(1:input$nclust), multiple = T))
+  })
   
   
   output$detail_plot_ui = renderUI({
@@ -103,7 +106,7 @@ shinyServer(function(input, output, session) {
     smoothing_window = input$smoothing_window
     
     
-    hmap_res = plot_details(disp_data, list_up, list_dn, sel, lines2plot, marks2plot, plot_type, smoothing_window, input$cluster_plot_type)
+    hmap_res = plot_details(disp_data, list_up, list_dn, sel, lines2plot, marks2plot, plot_type, smoothing_window, input$cluster_plot_type, as.numeric(input$nclust))
     ?isolate
     if(!is.null(hmap_res)){ v$hmap_res = hmap_res}else{v$hmap_res = NULL}
   })
@@ -126,41 +129,15 @@ shinyServer(function(input, output, session) {
     disp_data = react_get_displayed_data()
     list_up = react_list_up()
     list_dn = react_list_dn()
-    
     sel = react_get_selected()
     sel = intersect(rownames(disp_data), sel)
+    name_a = colnames(disp_data)[1]
+    name_b = colnames(disp_data)[2]
+    bg_opacity = input$bg_opacity
+    fg_opacity = input$fg_opacity
+    detect_thresh = input$detect_threshold
     
-    try({
-      name_a = colnames(disp_data)[1]
-      name_b = colnames(disp_data)[2]
-      scale = rep(1, nrow(disp_data)) #max(disp_data)
-      names(scale) = rownames(disp_data)
-      colors = rep(rgb(0,0,0,input$bg_opacity), nrow(disp_data))
-      names(colors) = rownames(disp_data)
-      if(length(list_up) > 0){
-        colors = scale_colors(data = disp_data, scale = scale, list_in = list_up, bg_color = rgb(0,0,0,input$bg_opacity), list_color = rgb(1,0,0,input$fg_opacity), colors = colors)
-      }
-      if(length(list_dn) > 0){
-        colors = scale_colors(data = disp_data, scale = scale, list_in = list_dn, bg_color = rgb(0,0,0,input$bg_opacity), list_color = rgb(0,1,0,input$fg_opacity), colors = colors)
-      }
-      if(length(sel) > 0){
-        colors = scale_colors(data = disp_data, scale = scale, list_in = sel, bg_color = rgb(0,0,0,input$bg_opacity), list_color = rgb(0,0,1,input$fg_opacity), colors = colors)
-      }
-      max_str = max(nchar(name_a), nchar(name_b))
-      note = paste0(format(name_a, width = max_str), ' - ', length(list_dn), '\n', format(name_b, width = max_str), ' - ', length(list_up))
-      MIN = min(disp_data)
-      MAX = max(disp_data)
-      YMAX = max(apply(disp_data, 1, min))
-      plot_merge(data = disp_data, list_a = list_up, list_b = list_dn, colors = colors, note = '',
-                 xlab = paste(name_b, 'log2 -', name_a, 'log2'), ylab = paste('minimum of', name_a, 'and', name_b), xlim = c(-MAX, MAX), ylim = c(MIN, YMAX), cex = .8)
-      text(-MAX + 2*MAX*.02,MIN + (YMAX-MIN)*.98, note, adj = c(0,1))
-      detect_thresh = input$detect_threshold
-      if(detect_thresh > 0){
-        print(detect_thresh)
-        lines(c(-MAX, MAX), c(detect_thresh, detect_thresh), col = 'yellow')
-        #lines(c(detect_thresh, detect_thresh), c(MIN, detect_thresh),  col = 'yellow')
-      }
-    }, silent = F)
+    plot_volcano(disp_data, list_up, list_dn, sel, name_a, name_b, bg_opacity, fg_opacity, detect_thresh)
   })
   
   output$select_gene_list = renderUI({
@@ -596,8 +573,13 @@ shinyServer(function(input, output, session) {
       return(xtable(data.frame('waiting on volcano plot...')))
     }
     if(debug) print("goTable")
-    sel = react_get_selected()
-    out_table = xtable(as.data.frame(1:10))
+    
+    clust_sel = as.numeric(input$go_clust)
+    cluster_members = v$hmap_res$cluster_members
+    go_input = unlist(v$hmap_res$cluster_members[clust_sel])
+    
+    
+    out_table = xtable(as.data.frame(go_input))
     return(out_table)
   }, sanitize.text.function = force)   
   
@@ -641,22 +623,20 @@ shinyServer(function(input, output, session) {
     fname = paste('volcano_',fname, '.pdf', sep = '')
   })
   content_volcano = function(file){
-    pdf(file, width = input$volcano_width*100/50, height = 650/50)
-    disp_data = my_fe
+    pdf(file, width = input$volcano_size*100/50, height = input$volcano_size*100/50)
+    
+    disp_data = react_get_displayed_data()
     list_up = react_list_up()
-    list_up = intersect(rownames(disp_data), list_up)
     list_dn = react_list_dn()
-    list_dn = intersect(rownames(disp_data), list_dn)
     sel = react_get_selected()
     sel = intersect(rownames(disp_data), sel)
+    name_a = colnames(disp_data)[1]
+    name_b = colnames(disp_data)[2]
+    bg_opacity = input$bg_opacity
+    fg_opacity = input$fg_opacity
+    detect_thresh = input$detect_threshold
     
-    lines2plot = input$volcano_lines
-    marks2plot = input$volcano_marks
-    plot_type = input$volcano_type
-    smoothing_window = input$smoothing_window
-    
-    
-    hmap_res = plot_volcanos(disp_data, list_up, list_dn, sel, lines2plot, marks2plot, plot_type, smoothing_window, input$cluster_plot_type)
+    plot_volcano(disp_data, list_up, list_dn, sel, name_a, name_b, bg_opacity, fg_opacity, detect_thresh)
     dev.off()
   }
   output$dl_volcano = downloadHandler(

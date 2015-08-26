@@ -96,9 +96,12 @@ shinyUI(
       #     tableOutput('goTable')
     ),
     column(width = 6, 
+    selectInput("nclust", "Cluster Count", choices = 3:8, selected = 6),
     tableOutput('selTable')
     ),
     column(width = 6,
+    uiOutput("go_clust"),
+    
     tableOutput('goTable')
     )
   )

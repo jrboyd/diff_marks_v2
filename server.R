@@ -9,10 +9,11 @@ shinyServer(function(input, output, session) {
     brush = NULL,
     hmap_res = NULL,
     data_ready = F,
-    volcano_ready = F,
+    selection_plot_ready = F,
     detail_ready = F,
     current_mode = modes$chip,
-    fresh_start_up = T
+    fresh_start_up = T,
+    filter = rownames(my_fe)
     
     #selected = character()
   )
@@ -78,6 +79,27 @@ shinyServer(function(input, output, session) {
   output$go_clust = renderUI({
     return(selectInput("go_clust", "GO Cluster input", choices = c(1:input$nclust), selected =  c(1:input$nclust), multiple = T))
   })
+  output$filter_clust = renderUI({
+    return(selectInput("filter_clust", "Filter to cluster", choices = c(1:input$nclust), selected =  c(1:input$nclust), multiple = T))
+  })
+  
+  #respond to actionButton apply_filter_clust by apply cluster filter
+  observeEvent(input$apply_filter_clust, {
+    print("apply_filter")
+    apply_filter_fun()
+  })
+  #wraps up actions of apply_filter, protecting it from dependency on too many reactives
+  apply_filter_fun = function(){
+    if(is.null(v$hmap_res)) return()
+    clust_sel = as.numeric(input$filter_clust)
+    new_filter = unlist(v$hmap_res$cluster_members[clust_sel])
+    v$filter <<- new_filter
+  }
+  #respond to actionButton release_filter_clust by reseting filter
+  observeEvent(input$release_filter_clust, {
+    print("release_filter")
+    v$filter <<- rownames(my_fe)
+  })
   
   
   output$detail_plot_ui = renderUI({
@@ -86,9 +108,9 @@ shinyServer(function(input, output, session) {
   
   output$detail_plot = renderPlot({
     if(debug) print("detail_plot")
-    if(!v$volcano_ready){
+    if(!v$selection_plot_ready){
       plot0()
-      text(.5,.5, 'waiting for volcano...')
+      text(.5,.5, 'waiting for selection_plot...')
       return()
     }
     v$detail_ready <<- T
@@ -111,21 +133,23 @@ shinyServer(function(input, output, session) {
     if(!is.null(hmap_res)){ v$hmap_res = hmap_res}else{v$hmap_res = NULL}
   })
   
-  output$volcano_ui = renderUI({
-    plotOutput('volcano', 
-               dblclick = "volcano_dblclick",
-               click = 'volcano_click',
-               brush = brushOpts(id = 'volcano_brush', delay = 600, delayType = 'debounce', resetOnNew = T),
-               hover = 'volcano_hover', width = 100*input$volcano_size, height = 100*input$volcano_size)
+  output$selection_plot_ui = renderUI({
+    plotOutput('selection_plot', 
+               dblclick = "selection_plot_dblclick",
+               click = 'selection_plot_click',
+               brush = brushOpts(id = 'selection_plot_brush', delay = 600, delayType = 'debounce', resetOnNew = T),
+               hover = 'selection_plot_hover', width = 100*input$selection_plot_size, height = 100*input$selection_plot_size)
   })
   
-  output$volcano =  renderPlot({
+  output$selection_plot =  renderPlot({
     if(!v$data_ready){
       plot0()
       text(.5,.5, 'waiting for data...')
       return()
     }
-    v$volcano_ready <<- T
+#     apply_filter()
+#     release_filter()
+    v$selection_plot_ready <<- T
     disp_data = react_get_displayed_data()
     list_up = react_list_up()
     list_dn = react_list_dn()
@@ -164,6 +188,7 @@ shinyServer(function(input, output, session) {
       keep = apply(cbind(my_rna, my_fe),1,max) > input$detect_threshold
       kept = names(keep)[keep]
     }
+    kept = intersect(kept, v$filter)
     return(kept)
   })
   
@@ -193,6 +218,7 @@ shinyServer(function(input, output, session) {
         }
       }
     }
+   
     return(displayed_data)
   })
   
@@ -337,7 +363,6 @@ shinyServer(function(input, output, session) {
     if(length(sel_methods) > 0 && sel_methods == marks_mismatch_message){
       sel_methods = selection_method_choices[1]
     }
-    #TODO
     out_list = character()
     if(!is.null(sel_methods)){
       out_list = process_lists(direction, sel_methods)
@@ -447,30 +472,30 @@ shinyServer(function(input, output, session) {
   })
   
   # Handle clicks on the plot
-  observeEvent(input$volcano_dblclick, {
+  observeEvent(input$selection_plot_dblclick, {
     if(debug) print('dblclick')
-    v$click1 <- input$volcano_dblclick
+    v$click1 <- input$selection_plot_dblclick
     v$brush = NULL
   })
   
-  observeEvent(input$volcano_click, {
+  observeEvent(input$selection_plot_click, {
     if(debug) print('click')
   })
   
   
   
   # Handle bush on the plot
-  observeEvent(input$volcano_brush, {
+  observeEvent(input$selection_plot_brush, {
     if(debug) print('brush')
-    v$brush = input$volcano_brush
+    v$brush = input$selection_plot_brush
     v$n <- v$n + 1
     vb = v$brush
     v$click1 = NULL
   })
   
   # Handle bush on the plot
-  observeEvent(input$volcano_hover, {
-    v$hover = input$volcano_hover
+  observeEvent(input$selection_plot_hover, {
+    v$hover = input$selection_plot_hover
   })
   
   observeEvent(input$reset, {
@@ -568,25 +593,28 @@ shinyServer(function(input, output, session) {
     return(selectInput(inputId = 'y_col_name', label = 'Select "To" value ', choices = choices, selected = choices[2]))
   })
   
+  
+  
   output$goTable = renderTable({
-    if(!v$volcano_ready){
-      return(xtable(data.frame('waiting on volcano plot...')))
+    if(!v$selection_plot_ready){
+      return(xtable(data.frame('waiting on selection_plot plot...')))
     }
     if(debug) print("goTable")
     
     clust_sel = as.numeric(input$go_clust)
-    cluster_members = v$hmap_res$cluster_members
-    go_input = unlist(v$hmap_res$cluster_members[clust_sel])
-    
-    
-    out_table = xtable(as.data.frame(go_input))
+    sel_msig = input$msig_choices
+    binom_res = get_goTable(sel_msig, clust_sel, v$hmap_res)
+    if(nrow(binom_res) == 0){
+      return(xtable(as.data.frame("no significant enrichment found!")))
+    }
+    out_table = xtable(as.data.frame(binom_res))
     return(out_table)
   }, sanitize.text.function = force)   
   
   
   output$selTable = renderTable({
-    if(!v$volcano_ready){
-      return(xtable(data.frame('waiting on volcano plot...')))
+    if(!v$selection_plot_ready){
+      return(xtable(data.frame('waiting on selection_plot plot...')))
     }
     if(debug) print("selTable")
     sel = react_get_selected()
@@ -606,7 +634,7 @@ shinyServer(function(input, output, session) {
   
   dl_tablename = reactive({
     fname = dl_name()
-    fname = paste('table_',fname, '.xlsx', sep = '')
+    fname = paste('selectedTable_',fname, '.xlsx', sep = '')
   })
   
   output$dl_table = downloadHandler(
@@ -617,15 +645,16 @@ shinyServer(function(input, output, session) {
     }
   )
   
-  ###volcano plot download
-  dl_volcano_name = reactive({
+  ###selection_plot plot download
+  dl_selection_plot_name = reactive({
     fname = dl_name()
-    fname = paste('volcano_',fname, '.pdf', sep = '')
+    fname = paste('selection_plot_',fname, '.pdf', sep = '')
   })
-  content_volcano = function(file){
-    pdf(file, width = input$volcano_size*100/50, height = input$volcano_size*100/50)
+  content_selection_plot = function(file){
+    pdf(file, width = input$selection_plot_size*100/50, height = input$selection_plot_size*100/50)
     
     disp_data = react_get_displayed_data()
+    
     list_up = react_list_up()
     list_dn = react_list_dn()
     sel = react_get_selected()
@@ -639,9 +668,9 @@ shinyServer(function(input, output, session) {
     plot_volcano(disp_data, list_up, list_dn, sel, name_a, name_b, bg_opacity, fg_opacity, detect_thresh)
     dev.off()
   }
-  output$dl_volcano = downloadHandler(
-    filename = dl_volcano_name,
-    content = content_volcano
+  output$dl_selection_plot = downloadHandler(
+    filename = dl_selection_plot_name,
+    content = content_selection_plot
   )
   
   ##detail plot download
@@ -671,6 +700,21 @@ shinyServer(function(input, output, session) {
   output$dl_detail = downloadHandler(
     filename = dl_detail_name,
     content = content_detail
+  )
+  
+  ##goTable download
+  dl_goTable_name = reactive({
+    fname = dl_name()
+    fname = paste('goTable_',fname, '.xlsx', sep = '')
+  })
+  
+  output$dl_goTable = downloadHandler(
+    filename = dl_goTable_name,
+    content = function(file){
+      clust_sel = as.numeric(input$go_clust)
+      sel_msig = input$msig_choices
+      content_goTable(file, sel_msig, clust_sel, v$hmap_res)
+    }
   )
   
 })

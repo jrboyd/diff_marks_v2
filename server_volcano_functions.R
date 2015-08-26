@@ -25,6 +25,7 @@ scale_colors = function(data, scale, list_in, bg_color = "black", list_color = "
         scale = rep(1, nrow(data))
         names(scale) = rownames(data)
     }
+    if(length(intersect(rownames(data), list_in)) == 0) return(colors)
     cr = colorRamp(colors = c(bg_color, list_color), alpha = T)
     tmp = cr(scale[list_in])/255
     colors[list_in] = rgb(tmp[, 1], tmp[, 2], tmp[, 3], tmp[, 4])
@@ -44,8 +45,11 @@ plot_bg = function(data, lists_excluded, colors, a, b, note = "", scale = NA, ..
 }
 
 plot_merge = function(data, list_a, list_b, colors, a = 1, b = 2, note, ...) {
+    colors = colors[rownames(data)]
     toSort = rep(0, length(colors))
     names(toSort) = rownames(data)
+    list_a = intersect(list_a, names(colors))
+    list_b = intersect(list_b, names(colors))
     toSort[list_a] = colors[list_a]
     toSort[list_b] = colors[list_b]
     o = order(toSort, decreasing = T)

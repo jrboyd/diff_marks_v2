@@ -85,6 +85,8 @@ if(!exists('loaded')){
   })
   
   debug = F
+  msig_choices = c('all','h', 'c1', 'c2', 'c2-cgp', 'c2-biocarta', 'c2-kegg', 'c2-reactome', 'c3', 'c4', 'c5', 'c6', 'c7', "GO:BP")
+  names(msig_choices) = c("All", "Hallmark", "Positional", "All Curated", "Chem and Gene Perturb", "Biocarta", "KEGG", "Reactome", "Motif", "Cancer Modules/Neighborhoods", "GO-MSigDB", "Oncogenic Signatures", "Immunologic Signatues", "GO-Biological Process")
   xy_type_choices = c("ChIPseq", 'RNAseq')
   display_filter_choices = c("Background", "Up", "Down")
   selection_filter_choices = c("Up or Down", "Up", "Down", "Unchanged", 'No Filter')

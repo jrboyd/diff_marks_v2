@@ -75,7 +75,7 @@ plot_details = function(disp_data, list_up, list_dn, sel, lines2plot, marks2plot
     line2i = 1:3
     names(line2i) = cell_lines
     ed_colors = RColorBrewer::brewer.pal(8, 'Set1')[line2i]
-    print(cluster_plot_type)
+    if(debug) print(cluster_plot_type)
     hmap_res = heatmap.ngsplots(sel_prof, 
                                 nclust = nclust, 
                                 cex.col = 6, 
@@ -207,6 +207,53 @@ content_table = function(file, sel, hmap_res){
   addDataFrame(x='parameters go here', sheet=my_wb2)
   saveWorkbook(my_wb, file)
   #write.xlsx2(out, file = file, sheetName = '1', row.names = F, col.names = T)#, quote = F, sep =',')
+}
+
+get_goTable = function(sel_msig, clust_sel, hmap_res){
+  cluster_members = hmap_res$cluster_members
+  go_input = unlist(hmap_res$cluster_members[clust_sel])
+  if(is.null(go_input)){
+    return(xtable(as.data.frame("no data has been selected for enrichment testing!")))
+  }
+  set_regex = NULL
+  invert_regex = F
+  gene_set = sel_msig#most msig_choices match msig keys exactly
+  print(sel_msig)
+  if(sel_msig == 'all') gene_set = NULL
+  else if(sel_msig == 'c2-cgp'){#most complicated since biocarta, kegg and reactome must be removed
+    gene_set = 'c2'
+    set_regex = c("KEGG", "BIOCARTA", "REACTOME")
+    invert_regex = T
+  }else if(sel_msig == 'c2-biocarta'){
+    gene_set = 'c2'
+    set_regex = "BIOCARTA"
+  }else if(sel_msig == 'c2-kegg'){
+    gene_set = 'c2'
+    set_regex = "KEGG"
+  }else if(sel_msig == 'c2-reactome'){
+    gene_set = 'c2'
+    set_regex = "REACTOME"
+  }
+  
+  if(sel_msig == 'GO:BP'){
+    binom_res = binom_go_enrich(test_ensg = go_input)
+  }else{
+    go_input = ensg_dict[go_input,]$gene_name
+    binom_res = binom_msig_enrich(gene_list = go_input, gene_set = gene_set, set_regex = set_regex, invert_regex = invert_regex)
+  }
+  return(binom_res)
+}
+
+content_goTable = function(file, sel_msig, clust_sel, hmap_res){
+  out = get_goTable(sel_msig, clust_sel, hmap_res)
+  my_wb <- createWorkbook()
+  my_wb1 <- createSheet(wb=my_wb, sheetName="enrichment results")
+  my_wb2 <- createSheet(wb=my_wb, sheetName="parameters")
+  addDataFrame(x=out, sheet=my_wb1, row.names = F, col.names = T)
+  nc = ncol(out)
+  autoSizeColumn(my_wb1, colIndex = 1:nc)
+  addDataFrame(x='parameters go here', sheet=my_wb2)
+  saveWorkbook(my_wb, file)
 }
 
 #selecte genes from scatterplot assembled in table with related information

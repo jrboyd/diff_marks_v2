@@ -2,7 +2,7 @@
 #if no gene_set specified, entire msigdb will be checked (likely leading to over FDR correction)
 #p_thresh is appplied to bonferonni corrected pvalues.
 #set_regex may be used to limit msig query set further, to KEGG or CHARAFE for example.
-binom_msig_enrich = function(gene_list, gene_set = NULL, p_thresh = .05, set_regex = NULL){
+binom_msig_enrich = function(gene_list, gene_set = NULL, p_thresh = .05, set_regex = NULL, invert_regex = F){
   if(is.null(gene_set)){
     
     names = list()
@@ -25,7 +25,11 @@ binom_msig_enrich = function(gene_list, gene_set = NULL, p_thresh = .05, set_reg
   }
   
   if(!is.null(set_regex)){
-    keep = grepl(set_regex, gene_set_group$names)
+    keep = rep(F, length(gene_set_group$names))
+    for(sr in set_regex){
+      keep = keep | grepl(sr, gene_set_group$names)#if any regex matches, it is kept
+    }
+    if(invert_regex) keep = !keep#if inverted, matching regex are discarded instead of kept
     if(sum(keep) < 1){
       warning(paste("regex", set_regex, "not found in gene_set", ifelse(is.null(gene_set), character(), gene_set)))
       return(NULL)
@@ -41,25 +45,29 @@ binom_msig_enrich = function(gene_list, gene_set = NULL, p_thresh = .05, set_reg
   rownames(all_tests) = gene_set_group$names
   colnames(all_tests) = c('adj_pval', 'fold-enriched', 'n_obs', 'n_exp', 'set_size')
   for(i in 1:length(n_success)){
-    pval = binom.test(x = n_success[i], p = prob[i], n = n_trials)$p.value*length(n_success)
-    fe = n_success[i] / n_trials / prob[i]
+    pval = binom.test(x = n_success[i], p = prob[i], n = n_trials)$p.value
+    pval = pval * length(gene_set_group$names)#FDR correction
     
-    # print(c(pval, fe))
     set_size = length(gene_set_group$sets[[i]])
+    fe = n_success[i]  / (prob[i] * set_size)
     all_tests[gene_set_group$names[i],] = c(pval, fe, n_success[i], prob[i] * set_size, set_size )
   }
   keep = all_tests[,1] < p_thresh
-  all_tests = all_tests[keep,]
+  all_tests = all_tests[keep,, drop = F]
   
   
   o = order(all_tests[,1])
-  final = all_tests[o,]
+  final = all_tests[o,, drop = F]
   return(final)
 }
 
 binom_go_enrich = function(test_ensg){
-  
-  test_sym = ensg_dict[test_ensg,]$gene_name
+  if(grepl('ENSG', test_ensg[1])){
+    test_sym = ensg_dict[test_ensg,]$gene_name
+  }else{
+    test_sym = test_ensg
+    warning("input is symbols, correct?")
+  }
   keep = !sapply(names(sym2gos[test_sym]), function(x)is.na(x))
   unmapped = sum(!keep)
   unmapped_sym = test_sym[!keep]
@@ -80,7 +88,6 @@ binom_go_enrich = function(test_ensg){
   
   total_genes = length(sym2gos)
   n_trials = length(mapped_sym)
-  
   tests = sapply(gos2sym[gos], function(x){
     n_success = length(intersect(x, mapped_sym))
     

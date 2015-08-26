@@ -45,7 +45,7 @@ binom_msig_enrich = function(gene_list, gene_set = NULL, p_thresh = .05, set_reg
   rownames(all_tests) = gene_set_group$names
   colnames(all_tests) = c('adj_pval', 'fold-enriched', 'n_obs', 'n_exp', 'set_size')
   for(i in 1:length(n_success)){
-    pval = binom.test(x = n_success[i], p = prob[i], n = n_trials)$p.value
+    pval = binom.test(x = n_success[i], p = prob[i], n = n_trials, alternative = "greater")$p.value
     pval = pval * length(gene_set_group$names)#FDR correction
     
     set_size = length(gene_set_group$sets[[i]])

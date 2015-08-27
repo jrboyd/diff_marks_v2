@@ -607,9 +607,32 @@ shinyServer(function(input, output, session) {
     if(nrow(binom_res) == 0){
       return(xtable(as.data.frame("no significant enrichment found!")))
     }
-    out_table = xtable(as.data.frame(binom_res))
+    out_table = as.data.frame(binom_res)
+    digits = NULL
+    display = NULL
+    if(ncol(out_table) > 1){    
+      digits = rep(3, ncol(out_table))
+      display = rep("G", ncol(out_table))
+      names(digits) = colnames(out_table)
+      names(display) = colnames(out_table)
+      display[c("n_obs", "n_exp", "fold_enriched", "set_size")] = "fg"
+      digits[c("n_exp", "fold_enriched")] = 2
+      digits[c("n_obs","set_size")] = 0
+      display = c("s", display)#add entry for rownames
+      digits = c(0, digits)
+#       digits(out_table) = digits
+#       display(out_table) = display
+#       print(dim(out_table))
+#       print(digits(out_table))
+#       print(display)
+    }
+    
+    out_table = xtable(out_table, display = display, digits = digits)
+    print(apply(out_table, 2, class))
+    print(display(out_table))
+    print(digits(out_table))
     return(out_table)
-  }, sanitize.text.function = force)   
+  })   
   
   
   output$selTable = renderTable({
@@ -622,6 +645,8 @@ shinyServer(function(input, output, session) {
       return(xtable(as.data.frame('no data selected')))
     }
     out_table = xtable(as.data.frame(get_sel_table(sel, v$hmap_res)))
+    
+    
     return(out_table)
   }, sanitize.text.function = force)    
   

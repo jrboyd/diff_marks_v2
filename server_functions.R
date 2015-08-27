@@ -213,7 +213,7 @@ get_goTable = function(sel_msig, clust_sel, hmap_res){
   cluster_members = hmap_res$cluster_members
   go_input = unlist(hmap_res$cluster_members[clust_sel])
   if(is.null(go_input)){
-    return(xtable(as.data.frame("no data has been selected for enrichment testing!")))
+    return((as.data.frame("no data has been selected for enrichment testing!")))
   }
   set_regex = NULL
   invert_regex = F

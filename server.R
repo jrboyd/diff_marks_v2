@@ -13,9 +13,9 @@ shinyServer(function(input, output, session) {
     detail_ready = F,
     current_mode = modes$chip,
     fresh_start_up = T,
-    filter = rownames(my_fe)
-    
-    #selected = character()
+    filter = rownames(my_fe),
+    curr_highlight = character(),
+    curr_selected = character()
   )
   
   react_mark_x = reactive({
@@ -65,6 +65,8 @@ shinyServer(function(input, output, session) {
     }
     checkboxGroupInput(inputId = 'detail_lines', label = 'Detail Cell Lines', choices = cell_lines, selected = default)
   })
+  outputOptions(output, "detail_lines", suspendWhenHidden = FALSE, priority = 60)
+  
   
   output$detail_marks = renderUI({
     if(debug) print("detail_marks")
@@ -76,16 +78,66 @@ shinyServer(function(input, output, session) {
     }
     checkboxGroupInput(inputId = 'detail_marks', label = 'Detail Histone Marks', choices = histone_mods, selected = default)
   })
+  outputOptions(output, "detail_lines", suspendWhenHidden = FALSE, priority = 60)
+  
   output$go_clust = renderUI({
     return(selectInput("go_clust", "GO Cluster input", choices = c(1:input$nclust), selected =  c(1:input$nclust), multiple = T))
   })
+  outputOptions(output, "detail_lines", suspendWhenHidden = FALSE, priority = 60)
+  
   output$filter_clust = renderUI({
     return(selectInput("filter_clust", "Filter to cluster", choices = c(1:input$nclust), selected =  c(1:input$nclust), multiple = T))
   })
+  outputOptions(output, "filter_clust", suspendWhenHidden = FALSE, priority = 30)
+  
+  ###respond to highlight controls
+  observeEvent(input$highlight_sel, {
+    if(debug) print("highlight_sel")
+  })
+  observeEvent(input$sel_highlight, {
+    if(debug) print("sel_highlight")
+    # v$brush = NULL
+    v$curr_selected = v$curr_highlight
+    v$curr_highlight = character()
+    
+  })
+  observeEvent(input$remove_highlight, {
+    if(debug) print("remove_highlight")
+  })
+  observeEvent(input$highlight_set, {
+    if(debug) print("highlight_set")
+    set_name = input$highlight_set_sel
+    gene_set = get_gene_set(set_name)
+    all_sym = ensg_dict[rownames(my_fe),]$gene_name
+    keep = sapply(all_sym, function(x){
+      any(x == gene_set)
+    })
+    v$curr_highlight <<- rownames(my_fe)[keep]
+    
+  })
+  react_goTable = reactive({
+    if(debug) print("react_goTable")
+    sel_msig = input$msig_choices
+    clust_sel = as.numeric(input$filter_clust)
+    return(get_goTable(sel_msig, clust_sel, v$hmap_res))
+  })
+  output$highlight_set_sel = renderUI({
+    binom_res = react_goTable()
+    if(all(dim(react_goTable()) == c(1,1))){
+      return(selectInput("highlight_set_sel", "Select Highlight Set", choices = "waiting for binomial results", width = "100%"))
+    }
+    #     choices = unlist(sapply(msigdb_categories, function(x){
+    #       x$names
+    #     }))
+    #     names(choices) = NULL
+    return(selectInput("highlight_set_sel", "Select Highlight Set", choices = rownames(binom_res), width = "100%"))
+  })
+  outputOptions(output, "highlight_set_sel", suspendWhenHidden = FALSE, priority = 20)
+  
   
   #respond to actionButton apply_filter_clust by apply cluster filter
   observeEvent(input$apply_filter_clust, {
-    print("apply_filter")
+    if(debug) print("apply_filter")
     apply_filter_fun()
   })
   #wraps up actions of apply_filter, protecting it from dependency on too many reactives
@@ -97,14 +149,19 @@ shinyServer(function(input, output, session) {
   }
   #respond to actionButton release_filter_clust by reseting filter
   observeEvent(input$release_filter_clust, {
-    print("release_filter")
+    if(debug) print("release_filter")
     v$filter <<- rownames(my_fe)
   })
   
   
   output$detail_plot_ui = renderUI({
-    plotOutput('detail_plot', width = input$detail_width * 100, height = 650)
+    if(debug) print("detail_plot_ui")
+    w = length(input$detail_lines) * length(input$detail_marks)*60+400
+    h = 650
+    plotOutput('detail_plot', width =  w, height = h)
   })
+  outputOptions(output, "detail_plot_ui", suspendWhenHidden = FALSE, priority = 51)
+  
   
   output$detail_plot = renderPlot({
     if(debug) print("detail_plot")
@@ -119,7 +176,7 @@ shinyServer(function(input, output, session) {
     list_up = intersect(rownames(disp_data), list_up)
     list_dn = react_list_dn()
     list_dn = intersect(rownames(disp_data), list_dn)
-    sel = react_get_selected()
+    sel = v$curr_selected
     sel = intersect(rownames(disp_data), sel)
     
     lines2plot = input$detail_lines
@@ -131,6 +188,7 @@ shinyServer(function(input, output, session) {
     hmap_res = plot_details(disp_data, list_up, list_dn, sel, lines2plot, marks2plot, plot_type, smoothing_window, input$cluster_plot_type, as.numeric(input$nclust))
     if(!is.null(hmap_res)){ v$hmap_res = hmap_res}else{v$hmap_res = NULL}
   })
+  outputOptions(output, "detail_plot", suspendWhenHidden = FALSE, priority = 50)
   
   output$selection_plot_ui = renderUI({
     plotOutput('selection_plot', 
@@ -139,6 +197,7 @@ shinyServer(function(input, output, session) {
                brush = brushOpts(id = 'selection_plot_brush', delay = 600, delayType = 'debounce', resetOnNew = T),
                hover = 'selection_plot_hover', width = 100*input$selection_plot_size, height = 100*input$selection_plot_size)
   })
+  outputOptions(output, "selection_plot_ui", suspendWhenHidden = FALSE, priority = 80)
   
   output$selection_plot =  renderPlot({
     if(!v$data_ready){
@@ -146,13 +205,13 @@ shinyServer(function(input, output, session) {
       text(.5,.5, 'waiting for data...')
       return()
     }
-#     apply_filter()
-#     release_filter()
+    #     apply_filter()
+    #     release_filter()
     v$selection_plot_ready <<- T
     disp_data = react_get_displayed_data()
     list_up = react_list_up()
     list_dn = react_list_dn()
-    sel = react_get_selected()
+    sel = v$curr_selected
     sel = intersect(rownames(disp_data), sel)
     name_a = colnames(disp_data)[1]
     name_b = colnames(disp_data)[2]
@@ -161,18 +220,21 @@ shinyServer(function(input, output, session) {
     detect_thresh = input$detect_threshold
     
     plot_volcano(disp_data, list_up, list_dn, sel, name_a, name_b, bg_opacity, fg_opacity, detect_thresh)
-  })
-  
-  output$select_gene_list = renderUI({
-    all_choices = c('a', 'b')
     
-    return(selectInput(width = '50%',
-                       inputId = 'selected_gene_list', 
-                       label = 'Select group for export', 
-                       choices = all_choices,
-                       selected = all_choices[1]
-    ))    
+    highlight_disp = intersect(v$curr_highlight, rownames(disp_data))
+    if(length(highlight_disp) > 0){
+      dat = disp_data[highlight_disp,,drop = F]
+      x = dat[,2] - dat[,1]
+      y = apply(dat, 1, min)
+      points(x, y, col = 'yellow')
+      m_x = mean(x)
+      m_y = mean(y)
+      lines(0:1-.5+m_x, rep(m_y,2), col = 'purple', lwd = 3)
+      lines(rep(m_x,2), 0:1-.5+m_y, col = 'purple', lwd = 3)
+    }
+    
   })
+  outputOptions(output, "selection_plot", suspendWhenHidden = FALSE, priority = 81)
   
   #return rownames of detectable datapoints
   react_get_detectable = reactive({
@@ -217,7 +279,7 @@ shinyServer(function(input, output, session) {
         }
       }
     }
-   
+    
     return(displayed_data)
   })
   
@@ -455,20 +517,25 @@ shinyServer(function(input, output, session) {
     return(dat)
   })
   
-  react_get_selected = reactive({
+  observeEvent(v$brush, {
     if(debug) print('react_get_selected')
-    list_up = react_list_up()
-    list_dn = react_list_dn()
-    filter = input$selection_filter
-    disp_data = react_get_displayed_data()
-    x = disp_data[,1]
-    y = disp_data[,2]
     new_selection = character()
     if(!is.null(v)){
-      new_selection = get_selected(x, y, list_up, list_dn, filter, v) 
+      if(!is.null(v$brush)){
+        list_up = react_list_up()
+        list_dn = react_list_dn()
+        filter = input$selection_filter
+        disp_data = react_get_displayed_data()
+        x = disp_data[,1]
+        y = disp_data[,2]
+        
+        new_selection = get_selected(x, y, list_up, list_dn, filter, v) 
+      }
+      
     }
-    return(new_selection)
-  })
+    v$curr_selected = new_selection
+  }
+  )
   
   # Handle clicks on the plot
   observeEvent(input$selection_plot_dblclick, {
@@ -519,7 +586,7 @@ shinyServer(function(input, output, session) {
       return(checkboxGroupInput(inputId = 'available_methods', label = 'Differential Methods', choices = marks_mismatch_message, selected = marks_mismatch_message))  
     }
   })
-  outputOptions(output, "available_methods", suspendWhenHidden = FALSE)
+  outputOptions(output, "available_methods", suspendWhenHidden = FALSE, priority = 90)
   
   x_type = reactive({
     if(input$x_type != input$y_type){
@@ -575,6 +642,7 @@ shinyServer(function(input, output, session) {
     return(selectInput(inputId = 'x_col_name', label = 'Select "From" Value ', choices = choices, selected = choices[1]))
     
   })
+  outputOptions(output, "x_select", suspendWhenHidden = FALSE, priority = 100)
   
   output$y_select = renderUI({
     input$detail_type
@@ -591,59 +659,46 @@ shinyServer(function(input, output, session) {
     })
     return(selectInput(inputId = 'y_col_name', label = 'Select "To" value ', choices = choices, selected = choices[2]))
   })
-  
+  outputOptions(output, "y_select", suspendWhenHidden = FALSE, priority = 100)
   
   
   output$goTable = renderTable({
+    if(debug) print("render goTable")
     if(!v$selection_plot_ready){
-      return(xtable(data.frame('waiting on selection_plot plot...')))
+      return(data.frame('waiting on selection_plot plot...'))
+      #return(xtable(data.frame('waiting on selection_plot plot...')))
     }
-    if(debug) print("goTable")
-    
-    clust_sel = as.numeric(input$go_clust)
-    sel_msig = input$msig_choices
-    binom_res = get_goTable(sel_msig, clust_sel, v$hmap_res)
-    # save(binom_res, file = "last_binom_res.save")
+    binom_res = react_goTable()
     if(nrow(binom_res) == 0){
-      return(xtable(as.data.frame("no significant enrichment found!")))
+      return(as.data.frame("no significant enrichment found!"))
+      #return(xtable(as.data.frame("no significant enrichment found!")))
     }
     out_table = as.data.frame(binom_res)
-    digits = NULL
-    display = NULL
-#     if(ncol(out_table) > 1){    
-#       digits = rep(3, ncol(out_table))
-#       display = rep("G", ncol(out_table))
-#       names(digits) = colnames(out_table)
-#       names(display) = colnames(out_table)
-#       display[c("n_obs", "n_exp", "fold_enriched", "set_size")] = "fg"
-#       digits[c("n_exp", "fold_enriched")] = 2
-#       digits[c("n_obs","set_size")] = 0
-#       display = c("s", display)#add entry for rownames
-#       digits = c(0, digits)
-#     }
-#     
-    out_table = xtable(out_table, display = display, digits = digits)
-    print(apply(out_table, 2, class))
-    print(display(out_table))
-    print(digits(out_table))
+    #     digits = NULL
+    #     display = NULL
+    # out_table = xtable(out_table, display = display, digits = digits)
     return(out_table)
   })   
+  outputOptions(output, "goTable", suspendWhenHidden = TRUE, priority = 10)
   
   
   output$selTable = renderTable({
     if(!v$selection_plot_ready){
-      return(xtable(data.frame('waiting on selection_plot plot...')))
+      return(data.frame('waiting on selection_plot plot...'))
+      #return(xtable(data.frame('waiting on selection_plot plot...')))
     }
     if(debug) print("selTable")
-    sel = react_get_selected()
+    sel = v$curr_selected
     if(length(sel) < 1){
-      return(xtable(as.data.frame('no data selected')))
+      return(as.data.frame('no data selected'))
+      #return(xtable(as.data.frame('no data selected')))
     }
-    out_table = xtable(as.data.frame(get_sel_table(sel, v$hmap_res)))
-    
+    out_table = as.data.frame(get_sel_table(sel, v$hmap_res))
+    # out_table = xtable(as.data.frame(get_sel_table(sel, v$hmap_res)))
     
     return(out_table)
-  }, sanitize.text.function = force)    
+  }, sanitize.text.function = force)
+  outputOptions(output, "goTable", suspendWhenHidden = TRUE, priority = 10)
   
   #download handlers
   dl_name = function(){
@@ -660,10 +715,11 @@ shinyServer(function(input, output, session) {
   output$dl_table = downloadHandler(
     filename = dl_tablename,
     content = function(file){
-      sel = react_get_selected()
+      sel = v$curr_selected
       content_table(file, sel, v$hmap_res)
     }
   )
+  outputOptions(output, "dl_table", suspendWhenHidden = FALSE, priority = 0)
   
   ###selection_plot plot download
   dl_selection_plot_name = reactive({
@@ -677,7 +733,7 @@ shinyServer(function(input, output, session) {
     
     list_up = react_list_up()
     list_dn = react_list_dn()
-    sel = react_get_selected()
+    sel = v$curr_selected
     sel = intersect(rownames(disp_data), sel)
     name_a = colnames(disp_data)[1]
     name_b = colnames(disp_data)[2]
@@ -692,6 +748,7 @@ shinyServer(function(input, output, session) {
     filename = dl_selection_plot_name,
     content = content_selection_plot
   )
+  outputOptions(output, "dl_selection_plot", suspendWhenHidden = FALSE, priority = 0)
   
   ##detail plot download
   dl_detail_name = reactive({
@@ -699,13 +756,15 @@ shinyServer(function(input, output, session) {
     fname = paste('detail_',fname, '.pdf', sep = '')
   })
   content_detail = function(file){
-    pdf(file, width = input$detail_width*100/50, height = 650/50)
+    w = length(input$detail_lines) * length(input$detail_marks)*60+400
+    h = 650
+    pdf(file, width = w/50, height = h/50)
     disp_data = my_fe
     list_up = react_list_up()
     list_up = intersect(rownames(disp_data), list_up)
     list_dn = react_list_dn()
     list_dn = intersect(rownames(disp_data), list_dn)
-    sel = react_get_selected()
+    sel = v$curr_selected
     sel = intersect(rownames(disp_data), sel)
     
     lines2plot = input$detail_lines
@@ -721,6 +780,7 @@ shinyServer(function(input, output, session) {
     filename = dl_detail_name,
     content = content_detail
   )
+  outputOptions(output, "dl_detail", suspendWhenHidden = FALSE, priority = 0)
   
   ##goTable download
   dl_goTable_name = reactive({
@@ -733,8 +793,10 @@ shinyServer(function(input, output, session) {
     content = function(file){
       clust_sel = as.numeric(input$go_clust)
       sel_msig = input$msig_choices
-      content_goTable(file, sel_msig, clust_sel, v$hmap_res)
+      goTable = react_goTable()
+      content_goTable(file, goTable)
     }
   )
+  outputOptions(output, "dl_goTable", suspendWhenHidden = FALSE, priority = 0)
   
 })

@@ -97,6 +97,8 @@ if(!exists('loaded')){
   exDat_choices = c("Lines", "Heatmaps", "Barplots")
   modes = list(mixed = 'mixed', rna = 'rna', chip = 'chip')
   as_FC = F
+  
+  
   exDat_linePlot = function(dat, ylim){
     xs = 1:ncol(dat)
     if(as_FC){

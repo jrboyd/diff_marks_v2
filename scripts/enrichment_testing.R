@@ -4,7 +4,6 @@
 #set_regex may be used to limit msig query set further, to KEGG or CHARAFE for example.
 binom_msig_enrich = function(gene_list, gene_set = NULL, p_thresh = .05, set_regex = NULL, invert_regex = F){
   if(is.null(gene_set)){
-    
     names = list()
     sets = list()
     hidden = sapply(msigdb_categories, function(x){

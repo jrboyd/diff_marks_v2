@@ -462,6 +462,7 @@ heatmap.2.2 = function (x,
   label.height = .5
   main.height = .8
   extraDataSize = 1
+  divLinesSize = .3
   sidePlotSize = 1
   labRowSize = 1
   
@@ -521,7 +522,7 @@ heatmap.2.2 = function (x,
     add_lmat_right(RowSideColors_size, solid = T)
   }
   if(doSidePlot | !is.null(extraData)){
-    add_lmat_right(1, solid = T)
+    add_lmat_right(divLinesSize, solid = T)
   }
   if(doSidePlot){
     add_lmat_right(sidePlotSize, solid = F)
@@ -664,7 +665,7 @@ heatmap.2.2 = function (x,
     par(xpd = NA)
     xpos <- 1:nc-.5
     n = sum(col_labels != '')
-    n_scale = 1 / n
+    n_scale = 1 #/ n  #no longer necessary to resize text according to columns, plot gets wider
     
     text(x = xpos, y = yshift, labels = col_labels, adj = c(.5, yadj),
          cex = cexCol * globalScale * n_scale, srt = srtCol, col = colCol)

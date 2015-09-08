@@ -25,9 +25,7 @@ plot_volcano = function(disp_data, list_up, list_dn, sel, name_a, name_b, bg_opa
   text(-MAX + 2*MAX*.02,MIN + (YMAX-MIN)*.98, note, adj = c(0,1))
   
   if(detect_thresh > 0){
-    #print(detect_thresh)
     lines(c(-MAX, MAX), c(detect_thresh, detect_thresh), col = 'yellow', lwd = 2)
-    #lines(c(detect_thresh, detect_thresh), c(MIN, detect_thresh),  col = 'yellow')
   }
 }
 
@@ -46,8 +44,7 @@ plot_details = function(disp_data, list_up, list_dn, sel, lines2plot, marks2plot
   detail_desc = paste(paste(lines2plot, collapse = ', '), ":", paste(marks2plot, collapse = ', '))
   
   to_plot = unlist(lapply(marks2plot, function(x)paste(lines2plot, x, sep = '_')))
-  if(debug) print('to_plot')
-  if(debug) print(to_plot)
+  if(debug) print(paste("plotting in detail", paste(to_plot, collapse = ', ')))
   if(plot_type == detail_plot_types[2]){#ngs profiles
     plotNGS_wBG(sel, bg_ENSGcut_list = NA, list_name = detail_desc, sel_name = 'Selected', linesToPlot = lines2plot, marksToPlot = marks2plot, smoothing = smoothing_window)
   }else if(plot_type == detail_plot_types[3]){#ngs heatmaps
@@ -75,10 +72,10 @@ plot_details = function(disp_data, list_up, list_dn, sel, lines2plot, marks2plot
     line2i = 1:3
     names(line2i) = cell_lines
     ed_colors = RColorBrewer::brewer.pal(8, 'Set1')[line2i]
-    if(debug) print(cluster_plot_type)
+    # if(debug) print(cluster_plot_type)
     hmap_res = heatmap.ngsplots(sel_prof, 
                                 nclust = nclust, 
-                                cex.col = 6, 
+                                cex.col = 1.5, 
                                 doSidePlot = doSidePlot, 
                                 labelWithCounts = T, 
                                 extraData = my_rna,#[,rna_toplot, drop = F], 
@@ -149,10 +146,8 @@ filter_selections = function(filter, sel, list_up, list_dn){
   if(length(sel) > 0){
     if(filter == selection_filter_choices[1]){#up or down
       sel = intersect(sel, union(list_up, list_dn))
-      #print(sel)
     }else if(filter == selection_filter_choices[2]){#up
       sel = intersect(sel, list_up)
-      #print(sel)
     }else if(filter == selection_filter_choices[3]){#down
       sel = intersect(sel, list_dn)
     }else if(filter == selection_filter_choices[4]){#unchanged
@@ -209,16 +204,11 @@ content_table = function(file, sel, hmap_res){
   #write.xlsx2(out, file = file, sheetName = '1', row.names = F, col.names = T)#, quote = F, sep =',')
 }
 
-get_goTable = function(sel_msig, clust_sel, hmap_res){
-  cluster_members = hmap_res$cluster_members
-  go_input = unlist(hmap_res$cluster_members[clust_sel])
-  if(is.null(go_input)){
-    return((as.data.frame("no data has been selected for enrichment testing!")))
-  }
+sel_msig2gene_set = function(sel_msig){
   set_regex = NULL
   invert_regex = F
   gene_set = sel_msig#most msig_choices match msig keys exactly
-  print(sel_msig)
+  if(debug) print(sel_msig)
   if(sel_msig == 'all') gene_set = NULL
   else if(sel_msig == 'c2-cgp'){#most complicated since biocarta, kegg and reactome must be removed
     gene_set = 'c2'
@@ -233,8 +223,39 @@ get_goTable = function(sel_msig, clust_sel, hmap_res){
   }else if(sel_msig == 'c2-reactome'){
     gene_set = 'c2'
     set_regex = "REACTOME"
+  }else if(sel_msig == 'GO:BP'){
+    gene_set = sel_msig
   }
-  
+  out = list(set_regex = set_regex, invert_regex = invert_regex, gene_set = gene_set)
+  return(out)
+}
+
+get_gene_set = function(set_name){
+  keep = sapply(msigdb_categories, function(x){
+    return(any(x$names == set_name))
+  })
+  gene_set = character()
+  if(any(keep)){#set_name is one of msig
+    cat = names(keep)[keep]
+    cat = msigdb_categories[[cat]]
+    gene_set = cat$sets[cat$names == set_name][[1]]
+  }else{#must be from go
+    gene_set = gos2sym[[set_name]]
+  }
+  return(gene_set)
+}
+
+get_goTable = function(sel_msig, clust_sel, hmap_res){
+  cluster_members = hmap_res$cluster_members
+  go_input = unlist(hmap_res$cluster_members[clust_sel])
+  if(is.null(go_input)){
+    return((as.data.frame("no data has been selected for enrichment testing!")))
+  }
+  params = sel_msig2gene_set(sel_msig)
+  set_regex = params$set_regex
+  invert_regex = params$invert_regex
+  gene_set = params$gene_set
+
   if(sel_msig == 'GO:BP'){
     binom_res = binom_go_enrich(test_ensg = go_input)
   }else{
@@ -244,8 +265,8 @@ get_goTable = function(sel_msig, clust_sel, hmap_res){
   return(binom_res)
 }
 
-content_goTable = function(file, sel_msig, clust_sel, hmap_res){
-  out = get_goTable(sel_msig, clust_sel, hmap_res)
+content_goTable = function(file, out){
+  #out = get_goTable(sel_msig, clust_sel, hmap_res)
   my_wb <- createWorkbook()
   my_wb1 <- createSheet(wb=my_wb, sheetName="enrichment results")
   my_wb2 <- createSheet(wb=my_wb, sheetName="parameters")

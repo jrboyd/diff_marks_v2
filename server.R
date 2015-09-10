@@ -118,13 +118,13 @@ shinyServer(function(input, output, session) {
   react_goTable = reactive({
     if(debug) print("react_goTable")
     sel_msig = input$msig_choices
-    clust_sel = as.numeric(input$filter_clust)
+    clust_sel = as.numeric(input$go_clust)
     return(get_goTable(sel_msig, clust_sel, v$hmap_res))
   })
   output$highlight_set_sel = renderUI({
     binom_res = react_goTable()
     if(all(dim(react_goTable()) == c(1,1))){
-      return(selectInput("highlight_set_sel", "Select Highlight Set", choices = "waiting for binomial results", width = "100%"))
+      return(selectInput("highlight_set_sel", "Select Highlight Set (from enrichment test)", choices = "waiting for binomial results", width = "100%"))
     }
     #     choices = unlist(sapply(msigdb_categories, function(x){
     #       x$names
@@ -133,6 +133,8 @@ shinyServer(function(input, output, session) {
     return(selectInput("highlight_set_sel", "Select Highlight Set", choices = rownames(binom_res), width = "100%"))
   })
   outputOptions(output, "highlight_set_sel", suspendWhenHidden = FALSE, priority = 20)
+  
+  
   
   
   #respond to actionButton apply_filter_clust by apply cluster filter

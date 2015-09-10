@@ -117,6 +117,33 @@ shinyUI(
         uiOutput("detail_plot_ui")
       )
     ),
+    sidebarLayout(
+      sidebarPanel( width = 3,
+                    tabsetPanel(type = 'pills',
+                                tabPanel("Main",
+                                         tags$div(title="Select the type of plot to make afte you've made a selection\n(click and drag on plot to select points)",
+                                                  radioButtons(inputId = 'detail_type', label = 'Detail Plot Type', choices = detail_plot_types, selected = detail_plot_types[3])),
+                                         tags$div(title="These CELL LINES are available to add to the detail plot\n(updates automatically as \"From\" and \"To\" change)",
+                                                  uiOutput(outputId = 'detail_lines')),
+                                         tags$div(title="These HISTONE MARKS are available to add to the detail plot\n(updates automatically as \"From\" and \"To\" change)",
+                                                  uiOutput(outputId = 'detail_marks'))
+                                         
+                                ),
+                                tabPanel("Clustering",
+                                         selectInput("nclust", "Cluster Count", choices = 3:8, selected = 6),
+                                         uiOutput("filter_clust"),
+                                         actionButton("apply_filter_clust", "Apply Cluster Filter"),
+                                         actionButton("release_filter_clust", "Release Cluster Filter")
+                                )
+                    )
+      ),
+      mainPanel(
+        tags$div(title="This plot is meant to reveal additional relationship within genes selected via the Selection Plot.
+                 \nAdditional plot type are under the Main tab.\nFor the ngsplot - heatmap, different types of cluster plots are under Plot Appearance.",
+                 titlePanel("Detail Plot")),
+        uiOutput("detail_plot_ui")
+      )
+      ),                   
     
     conditionalPanel(condition = "input.uishow_sel_table == true", 
                      column(width = 6, 

@@ -3,6 +3,7 @@ source('server_functions.R')
 source('server_volcano_functions.R')
 
 shinyServer(function(input, output, session) {
+  print('v')
   v <- reactiveValues(
     click1 = NULL,  # Represents the first mouse click, if any
     n = 0,
@@ -193,6 +194,7 @@ shinyServer(function(input, output, session) {
   outputOptions(output, "detail_plot", suspendWhenHidden = FALSE, priority = 50)
   
   output$selection_plot_ui = renderUI({
+    if(debug) print('selection_plot_ui')
     plotOutput('selection_plot', 
                dblclick = "selection_plot_dblclick",
                click = 'selection_plot_click',
@@ -202,6 +204,7 @@ shinyServer(function(input, output, session) {
   outputOptions(output, "selection_plot_ui", suspendWhenHidden = FALSE, priority = 80)
   
   output$selection_plot =  renderPlot({
+    if(debug) print('selection_plot')
     if(!v$data_ready){
       plot0()
       text(.5,.5, 'waiting for data...')

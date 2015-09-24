@@ -1,6 +1,6 @@
 source('setup.R')
 plot_size = "600px"
-
+print('wh')
 shinyUI(
   fluidPage(
     tags$div(title="\nHover over other UI elements for additional help.\n
@@ -60,12 +60,12 @@ shinyUI(
                                          tags$div(title="How much smoothing to use if aggregated profiles are being plotted\n(if no aggregate plots, this does nothing).",
                                                   sliderInput('smoothing_window', label = 'Smoothing Window', min = 1, max = 20, value = 5, step = 1))
                                 ),
-                                tabPanel("UI Elements",
-                                         tags$div(title="1",
-                                                  checkboxInput('uishow_sel_table', value = F, label = "Show Selected Table")),
-                                         tags$div(title="1",
-                                                  checkboxInput('uishow_go_table', value = T, label = "Show MSigDB-GO Table"))
-                                ),
+                                #                                 tabPanel("UI Elements",
+                                #                                          tags$div(title="1",
+                                #                                                   checkboxInput('uishow_sel_table', value = F, label = "Show Selected Table")),
+                                #                                          tags$div(title="1",
+                                #                                                   checkboxInput('uishow_go_table', value = T, label = "Show MSigDB-GO Table"))
+                                #                                 ),
                                 tabPanel("Highlight/Select",
                                          uiOutput("highlight_set_sel"),
                                          actionButton("highlight_set", "Apply Highlight to Set"),
@@ -117,51 +117,42 @@ shinyUI(
         uiOutput("detail_plot_ui")
       )
     ),
-    sidebarLayout(
-      sidebarPanel( width = 3,
-                    tabsetPanel(type = 'pills',
-                                tabPanel("Main",
-                                         tags$div(title="Select the type of plot to make afte you've made a selection\n(click and drag on plot to select points)",
-                                                  radioButtons(inputId = 'detail_type', label = 'Detail Plot Type', choices = detail_plot_types, selected = detail_plot_types[3])),
-                                         tags$div(title="These CELL LINES are available to add to the detail plot\n(updates automatically as \"From\" and \"To\" change)",
-                                                  uiOutput(outputId = 'detail_lines')),
-                                         tags$div(title="These HISTONE MARKS are available to add to the detail plot\n(updates automatically as \"From\" and \"To\" change)",
-                                                  uiOutput(outputId = 'detail_marks'))
-                                         
-                                ),
-                                tabPanel("Clustering",
-                                         selectInput("nclust", "Cluster Count", choices = 3:8, selected = 6),
-                                         uiOutput("filter_clust"),
-                                         actionButton("apply_filter_clust", "Apply Cluster Filter"),
-                                         actionButton("release_filter_clust", "Release Cluster Filter")
-                                )
-                    )
-      ),
-      mainPanel(
-        tags$div(title="This plot is meant to reveal additional relationship within genes selected via the Selection Plot.
-                 \nAdditional plot type are under the Main tab.\nFor the ngsplot - heatmap, different types of cluster plots are under Plot Appearance.",
-                 titlePanel("Detail Plot")),
-        uiOutput("detail_plot_ui")
-      )
-      ),                   
+    tabsetPanel(type = 'pills',
+                tabPanel("Selected Genes",
+                         tags$div(title="Gene currently selected in the Selection Plot appear here.\nThis table may be downloaded as an excel file.",
+                                  titlePanel("Selected Genes")),
+                         downloadButton('dl_table', 'Download Selected Genes'),
+                         tableOutput('selTable')
+                         
+                ),
+                tabPanel("Enriched GO/MSIG",
+                         tags$div(title="Select points (genes) here to view in the table and detail plot.  \nClick and drag to select a region of points or double-click to select the single nearest",
+                                  titlePanel("Gene Set Enrichment")),
+                         fluidRow(
+                           selectInput("msig_choices", label = "MSigDB collections", choices = msig_choices, msig_choices[5]),
+                           uiOutput("go_clust"),
+                           downloadButton('dl_goTable', "Download Enrichment Results")),
+                         tableOutput('goTable')
+                )
+    )#,
     
-    conditionalPanel(condition = "input.uishow_sel_table == true", 
-                     column(width = 6, 
-                            tags$div(title="Gene currently selected in the Selection Plot appear here.\nThis table may be downloaded as an excel file.",
-                                     titlePanel("Selected Genes")),
-                            downloadButton('dl_table', 'Download Selected Genes'),
-                            tableOutput('selTable')
-                     )),
-    conditionalPanel(condition = "input.uishow_go_table == true", 
-                     column(width = 6,
-                            tags$div(title="Select points (genes) here to view in the table and detail plot.  \nClick and drag to select a region of points or double-click to select the single nearest",
-                                     titlePanel("Gene Set Enrichment")),
-                            fluidRow(
-                              selectInput("msig_choices", label = "MSigDB collections", choices = msig_choices, msig_choices[5]),
-                              uiOutput("go_clust"),
-                              downloadButton('dl_goTable', "Download Enrichment Results")),
-                            tableOutput('goTable')
-                     ))
+#     conditionalPanel(condition = "input.uishow_sel_table == true", 
+#                      column(width = 6, 
+#                             tags$div(title="Gene currently selected in the Selection Plot appear here.\nThis table may be downloaded as an excel file.",
+#                                      titlePanel("Selected Genes")),
+#                             downloadButton('dl_table', 'Download Selected Genes'),
+#                             tableOutput('selTable')
+#                      )),
+#     conditionalPanel(condition = "input.uishow_go_table == true", 
+#                      column(width = 6,
+#                             tags$div(title="Select points (genes) here to view in the table and detail plot.  \nClick and drag to select a region of points or double-click to select the single nearest",
+#                                      titlePanel("Gene Set Enrichment")),
+#                             fluidRow(
+#                               selectInput("msig_choices", label = "MSigDB collections", choices = msig_choices, msig_choices[5]),
+#                               uiOutput("go_clust"),
+#                               downloadButton('dl_goTable', "Download Enrichment Results")),
+#                             tableOutput('goTable')
+#                      ))
   )
 )
 
